@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<settings>
+	<Port>5005</Port>
+	<DelayPeriodicity>1500</DelayPeriodicity>
+	<DelayDuration>1300</DelayDuration>
+</settings>
