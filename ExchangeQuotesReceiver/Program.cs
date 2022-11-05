@@ -9,7 +9,7 @@ if (!GetSettings())
     return;
 }
 
-if (delayDuration >= delayPeriodicity)
+if (delayPeriodicity != 0 && delayDuration >= delayPeriodicity)
 {
     Console.WriteLine("Invalid delay parameters!");
     return;
