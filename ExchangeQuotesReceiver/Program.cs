@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection.Metadata.Ecma335;
 using System.Xml;
 
 if (!GetSettings())
@@ -70,33 +71,17 @@ partial class Program
         if (Console.ReadKey().Key == ConsoleKey.Enter)
         {
             Console.WriteLine("\nTotal messages received: " + messagesCount);
-            Console.WriteLine("Total messages lost: " + lostMessagesCount);
-            Console.WriteLine("Average: " + average);
-            Console.WriteLine("Standard deviation: " + Math.Sqrt(deviationSum / (messagesCount + 1)));
-            Console.WriteLine("Mediana: " + mediana);
-            Console.WriteLine("Moda: " + moda);
+            Console.WriteLine("Total messages lost:     " + lostMessagesCount);
+            Console.WriteLine("Average:                 " + average);
+            Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)));
+            Console.WriteLine("Mediana:                 " + mediana);
+            Console.WriteLine("Moda:                    " + moda);
         }
         Output();
     }
-    
-    private static void FillData(byte[] rawData)
+
+    private static EnumerableRowCollection<DataRow> FillDataTable(Int64 value)
     {
-        messagesCount++;
-
-        byte[] halfMessage = new byte[halfBufferLength];
-
-        Array.Copy(rawData, halfMessage, halfBufferLength);
-        lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - messagesCount;
-
-        Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
-        Int64 value = BitConverter.ToInt64(halfMessage, 0);
-
-        sum += value;
-        average = (double)sum / (double)messagesCount;
-
-        double deviation = (double)value - average;
-        deviationSum += deviation * deviation;
-
         DataRow row;
         EnumerableRowCollection<DataRow> rows = dt.AsEnumerable();
         try
@@ -118,13 +103,36 @@ partial class Program
                 dt.Rows.InsertAt(row, dt.Rows.Count);
             }
         }
+        return rows;
+    }
+
+    private static void FillData(byte[] rawData)
+    {
+        messagesCount++;
+
+        byte[] halfMessage = new byte[halfBufferLength];
+
+        Array.Copy(rawData, halfMessage, halfBufferLength);
+        lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - messagesCount;
+
+        Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
+        Int64 value = BitConverter.ToInt64(halfMessage, 0);
+
+        sum += value;
+        average = (double)sum / (double)messagesCount;
+
+        double deviation = (double)value - average;
+        deviationSum += deviation * deviation;
+
+        EnumerableRowCollection<DataRow> rows = FillDataTable(value);
+
+        moda = (Int64)rows.Where(r => r.Field<Int64>("Count") == (Int64)rows.Max(r => r["Count"])).First()["Value"];
 
         int count = dt.Rows.Count;
         if (count % 2 == 0)
             mediana = ((Int64)dt.Rows[count / 2 - 1]["Value"] + (Int64)dt.Rows[count / 2]["Value"]) / 2;
         else
             mediana = (Int64)dt.Rows[(count + 1) / 2 - 1]["Value"];
-        moda = (Int64)rows.Where(r => r.Field<Int64>("Count") == (Int64)rows.Max(r => r["Count"])).First()["Value"];
     }
 
     public static bool GetSettings()
