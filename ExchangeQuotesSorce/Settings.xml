@@ -3,5 +3,5 @@
 	<GroupAddress>127.0.0.1</GroupAddress>
 	<Port>5005</Port>
 	<MinValue>1</MinValue>
-	<MaxValue>10</MaxValue>
+	<MaxValue>1000</MaxValue>
 </settings>

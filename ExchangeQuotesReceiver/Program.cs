@@ -40,7 +40,7 @@ while (true)
     }
     try
     {
-        await Task.Run(async () => FillData((await udpClient.ReceiveAsync()).Buffer));
+        await Task.Run(async () => UpdateData((await udpClient.ReceiveAsync()).Buffer));
     }
     catch { };
 }
@@ -63,7 +63,7 @@ partial class Program
     private static Int64 sum = 0;
     private static double average = 0;
     private static double deviationSum = 0;
-    private static Int64 mediana = 0;
+    private static double mediana = 0;
     private static Int64 moda = 0;
 
     private static void Output()
@@ -80,7 +80,7 @@ partial class Program
         Output();
     }
 
-    private static EnumerableRowCollection<DataRow> FillDataTable(Int64 value)
+    private static EnumerableRowCollection<DataRow> UpdateTable(Int64 value)
     {
         DataRow row;
         EnumerableRowCollection<DataRow> rows = dt.AsEnumerable();
@@ -94,6 +94,7 @@ partial class Program
             row = dt.NewRow();
             row["Value"] = value;
             row["Count"] = 1;
+
             try
             {
                 dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.Where(r => r.Field<Int64>("Value") >= value).First()));
@@ -106,7 +107,7 @@ partial class Program
         return rows;
     }
 
-    private static void FillData(byte[] rawData)
+    private static void UpdateData(byte[] rawData)
     {
         messagesCount++;
 
@@ -124,15 +125,14 @@ partial class Program
         double deviation = (double)value - average;
         deviationSum += deviation * deviation;
 
-        EnumerableRowCollection<DataRow> rows = FillDataTable(value);
+        EnumerableRowCollection<DataRow> rows = UpdateTable(value);
 
         moda = (Int64)rows.Where(r => r.Field<Int64>("Count") == (Int64)rows.Max(r => r["Count"])).First()["Value"];
 
         int count = dt.Rows.Count;
-        if (count % 2 == 0)
-            mediana = ((Int64)dt.Rows[count / 2 - 1]["Value"] + (Int64)dt.Rows[count / 2]["Value"]) / 2;
-        else
-            mediana = (Int64)dt.Rows[(count + 1) / 2 - 1]["Value"];
+        mediana = count % 2 == 0 ?
+                  ((double)dt.Rows[count / 2 - 1]["Value"] + (double)dt.Rows[count / 2]["Value"]) / 2.0 :
+                  (Int64)dt.Rows[(count + 1) / 2 - 1]["Value"];
     }
 
     public static bool GetSettings()
