@@ -65,8 +65,6 @@ partial class Program
     private static Int64 mediana = 0;
     private static Int64 moda = 0;
 
-    private static object locker = new();
-
     private static void Output()
     {
         if (Console.ReadKey().Key == ConsoleKey.Enter)
