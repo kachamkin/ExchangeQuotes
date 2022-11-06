@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection.Metadata.Ecma335;
 using System.Xml;
 
 if (!GetSettings())
@@ -16,13 +15,22 @@ if (delayPeriodicity != 0 && delayDuration >= delayPeriodicity)
     return;
 }
 
+UdpClient udpClient;
+try
+{
+    udpClient = new(port);
+    udpClient.JoinMulticastGroup(groupAddress, ttl);
+}
+catch
+{
+    Console.WriteLine("Invalid IP address or port values!");
+    return;
+}
+
 dt.Columns.Add("Value", typeof(Int64));
 dt.Columns.Add("Count", typeof(Int64));
 
-UdpClient udpClient = new(port);
-IPEndPoint remoteIP = new(IPAddress.Any, port);
-
-if (delayPeriodicity > 0 && delayDuration > 0)
+if (delayPeriodicity > 0 && delayDuration > 0) // force messages loss
 {
     timer = new(delayPeriodicity);
     timer.Elapsed += (sender, eventArgs) => useDelay = true;
@@ -36,7 +44,7 @@ while (true)
     if (useDelay)
     {
         useDelay = false;
-        Thread.Sleep(delayDuration);
+        Thread.Sleep(delayDuration); // force messages loss
     }
     try
     {
@@ -50,21 +58,24 @@ partial class Program
     private const int halfBufferLength = 8;
 
     private static int port;
+    private static IPAddress? groupAddress;
+    private static int ttl; // multicast TTL
 
     private static int delayPeriodicity = 0;
     private static int delayDuration = 0;
     private static bool useDelay = false;
     private static System.Timers.Timer? timer;
 
-    private static DataTable dt = new();
+    private static DataTable dt = new(); // stores received values and their frequencies; always oredered and grouped by value to calculate mediane and mode 
 
     private static Int64 messagesCount = 0; 
     private static Int64 lostMessagesCount = 0; 
     private static Int64 sum = 0;
     private static double average = 0;
     private static double deviationSum = 0;
-    private static double mediana = 0;
-    private static Int64 moda = 0;
+    private static double mediane = 0;
+    private static Int64 mode = 0;
+    private static Int64 maxValueCount = 0;
 
     private static void Output()
     {
@@ -74,8 +85,8 @@ partial class Program
             Console.WriteLine("Total messages lost:     " + lostMessagesCount);
             Console.WriteLine("Average:                 " + average);
             Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)));
-            Console.WriteLine("Mediana:                 " + mediana);
-            Console.WriteLine("Moda:                    " + moda);
+            Console.WriteLine("Mediane:                 " + mediane);
+            Console.WriteLine("Mode:                    " + (maxValueCount > 1 ? mode + " with frequency " + maxValueCount : "none"));
         }
         Output();
     }
@@ -86,22 +97,22 @@ partial class Program
         EnumerableRowCollection<DataRow> rows = dt.AsEnumerable();
         try
         {
-            row = rows.Where(r => r.Field<Int64>("Value") == value).First();
-            row["Count"] = (Int64)row["Count"] + 1;
+            row = rows.Where(r => r.Field<Int64>("Value") == value).First(); // if value already exists in table
+            row["Count"] = (Int64)row["Count"] + 1;                          // keep the table grouped by values
         }
         catch
         {
-            row = dt.NewRow();
+            row = dt.NewRow(); // new value not found in the table
             row["Value"] = value;
             row["Count"] = 1;
 
             try
             {
-                dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.Where(r => r.Field<Int64>("Value") >= value).First()));
+                dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.Where(r => r.Field<Int64>("Value") >= value).First())); // insert before row with the first value which is >= than new one to keep the table ordered by values
             }
             catch
             {
-                dt.Rows.InsertAt(row, dt.Rows.Count);
+                dt.Rows.InsertAt(row, dt.Rows.Count); // new row with the greatest value
             }
         }
         return rows;
@@ -111,26 +122,28 @@ partial class Program
     {
         messagesCount++;
 
-        byte[] halfMessage = new byte[halfBufferLength];
+        byte[] halfMessage = new byte[halfBufferLength]; // 8 bytes
 
         Array.Copy(rawData, halfMessage, halfBufferLength);
-        lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - messagesCount;
+        lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - messagesCount; // first 8 bytes are message number
 
         Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
-        Int64 value = BitConverter.ToInt64(halfMessage, 0);
+        Int64 value = BitConverter.ToInt64(halfMessage, 0);                       // last 8 bytes are received value
 
         sum += value;
-        average = (double)sum / (double)messagesCount;
+        average = (double)sum / messagesCount;
 
         double deviation = (double)value - average;
         deviationSum += deviation * deviation;
 
         EnumerableRowCollection<DataRow> rows = UpdateTable(value);
 
-        moda = (Int64)rows.Where(r => r.Field<Int64>("Count") == (Int64)rows.Max(r => r["Count"])).First()["Value"];
+        maxValueCount = (Int64)rows.Max(r => r["Count"]); // max frequency to define mode; if it equals 1 then all values in the table are unique, no mode defined
+        if (maxValueCount > 1)                            
+            mode = (Int64)rows.Where(r => r.Field<Int64>("Count") == maxValueCount).First()["Value"];
 
         int count = dt.Rows.Count;
-        mediana = count % 2 == 0 ?
+        mediane = count % 2 == 0 ? // mediane = "middle" value in ordered dataset
                   ((double)dt.Rows[count / 2 - 1]["Value"] + (double)dt.Rows[count / 2]["Value"]) / 2.0 :
                   (Int64)dt.Rows[(count + 1) / 2 - 1]["Value"];
     }
@@ -143,7 +156,9 @@ partial class Program
             Settings.Load("Settings.xml");
             XmlElement? Element = Settings.DocumentElement;
 
+            groupAddress = IPAddress.Parse(Element.SelectSingleNode("GroupAddress").InnerText);
             port = int.Parse(Element.SelectSingleNode("Port").InnerText);
+            ttl = int.Parse(Element.SelectSingleNode("TTL").InnerText);
             delayPeriodicity = int.Parse(Element.SelectSingleNode("DelayPeriodicity").InnerText);
             delayDuration = int.Parse(Element.SelectSingleNode("DelayDuration").InnerText);
 
