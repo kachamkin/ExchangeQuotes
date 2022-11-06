@@ -20,7 +20,7 @@ try
 {
     udpClient = new(port);
     
-    // buffer should be large enough to avoid or decrease packets loss
+    // buffer should be large enough to avoid or reduce packets loss
     udpClient.Client.ReceiveBufferSize = receiveBufferSize; 
 
     // multicast reduces reliability;
@@ -138,7 +138,7 @@ partial class Program
 
     private static EnumerableRowCollection<DataRow> UpdateTable(Int64 value)
     {
-        // no use of "OrderBy" and "GroupBy" here because it would decrease performance for large data volumes;
+        // no use of "OrderBy" and "GroupBy" here because it would reduce performance for large data volumes;
         // row insertion at the right place and count increment seems more efficient
         // especially using LINQ Parallel to distribute search between two processor cores or more
 
