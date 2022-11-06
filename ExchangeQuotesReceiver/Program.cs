@@ -19,7 +19,9 @@ if (delayPeriodicity != 0 && delayDuration >= delayPeriodicity)
 try
 {
     udpClient = new(port);
-    udpClient.Client.ReceiveBufferSize = receiveBufferSize; // large enough to decrease packets loss
+    
+    // buffer should be large enough to avoid or decrease packets loss
+    udpClient.Client.ReceiveBufferSize = receiveBufferSize; 
 
     // multicast reduces reliability;
     // direct sending of UDP packets to the receiver's IP causes less packets loss;
@@ -180,7 +182,7 @@ partial class Program
 
             Array.Copy(rawData, halfMessage, halfBufferLength);
             if (initMessageNumber == - 1)
-                initMessageNumber = BitConverter.ToInt64(halfMessage, 0) - 1;
+                initMessageNumber = BitConverter.ToInt64(halfMessage, 0) - 1; // number of the first received message
 
             // lost messages count can be negative (!) if the packet received "too late"
             // (messages with greater numbers received earlier so total count of received messages is greater than current message number);
