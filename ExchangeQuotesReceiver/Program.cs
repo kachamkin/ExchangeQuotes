@@ -82,7 +82,7 @@ partial class Program
     // always oredered and grouped by values;
     // increases permormance: smaller memory usage and faster data access — no need to store all large set of received data;
     // necessary only for mediane and mode calculation
-    private static DataTable dt = new(); 
+    private static readonly DataTable dt = new(); 
 
     private static Int64 messagesCount = 0; 
     private static Int64 lostMessagesCount = 0; 
@@ -93,7 +93,7 @@ partial class Program
     private static Int64 mode = 0;
     private static Int64 maxValueCount = 0;
 
-    private static object locker = new();
+    private static readonly object locker = new();
 
     private static void Output()
     {
@@ -114,8 +114,16 @@ partial class Program
         // use "Q" to free network resources and avoid side effects
         else if (keyPressed == ConsoleKey.Q)
         {
+            if (timer != null)
+                if (timer.Enabled)
+                {
+                    timer.Stop();
+                    timer.Dispose();
+                }
+
             udpClient?.Close();
             udpClient?.Dispose();
+
             Process.GetCurrentProcess().Kill();
         }
         Output();
