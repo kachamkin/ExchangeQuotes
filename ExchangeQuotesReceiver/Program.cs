@@ -75,7 +75,9 @@ partial class Program
     private static System.Timers.Timer? timer;
 
     // stores received values and their frequencies;
-    // always oredered and grouped by values to calculate mediane and mode
+    // always oredered and grouped by values;
+    // increases permormance: smaller memory usage and faster data access — no need to store all large set of received data;
+    // necessary only for mediane and mode calculation
     private static DataTable dt = new(); 
 
     private static Int64 messagesCount = 0; 
