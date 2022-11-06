@@ -19,6 +19,7 @@ if (delayPeriodicity != 0 && delayDuration >= delayPeriodicity)
 try
 {
     udpClient = new(port);
+    udpClient.Client.ReceiveBufferSize = receiveBufferSize; // large enough to decrease packets loss
 
     // multicast reduces reliability;
     // direct sending of UDP packets to the receiver's IP causes less packets loss;
@@ -67,6 +68,7 @@ while (true)
 partial class Program
 {
     private const int halfBufferLength = 8;
+    private const int receiveBufferSize = 10485760;
 
     private static int port;
     private static IPAddress? groupAddress;
@@ -92,6 +94,7 @@ partial class Program
     private static double mediane = 0;
     private static Int64 mode = 0;
     private static Int64 maxValueCount = 0;
+    private static Int64 initMessageNumber = - 1;
 
     private static readonly object locker = new();
 
@@ -176,13 +179,15 @@ partial class Program
             byte[] halfMessage = new byte[halfBufferLength]; // 8 bytes
 
             Array.Copy(rawData, halfMessage, halfBufferLength);
-            
+            if (initMessageNumber == - 1)
+                initMessageNumber = BitConverter.ToInt64(halfMessage, 0) - 1;
+
             // lost messages count can be negative (!) if the packet received "too late"
             // (messages with greater numbers received earlier so total count of received messages is greater than current message number);
             // it's possible due to asynchronous nature of data sending, receiving and processing;
             // could be watched if random interval is small enough and random generation is fast;
             // because of this it's very rough estimate — "lost" packets can be received later and estimate will decrease in such case
-            lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - messagesCount; // first 8 bytes are message number
+            lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - initMessageNumber - messagesCount; // first 8 bytes are message number
 
             Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
             Int64 value = BitConverter.ToInt64(halfMessage, 0);                       // last 8 bytes are received value
