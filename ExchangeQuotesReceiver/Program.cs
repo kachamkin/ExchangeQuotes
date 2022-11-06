@@ -19,7 +19,11 @@ UdpClient udpClient;
 try
 {
     udpClient = new(port);
-    udpClient.JoinMulticastGroup(groupAddress, ttl);
+
+    // multicast reduces reliability;
+    // direct sending of UDP packets to the receiver's IP causes less packets loss;
+    // TCP of course would be more reliable (and slower)
+    udpClient.JoinMulticastGroup(groupAddress, ttl); 
 }
 catch
 {
@@ -37,6 +41,7 @@ if (delayPeriodicity > 0 && delayDuration > 0) // force messages loss
     timer.Start();
 }
 
+// wait for the user's "Enter"
 Task.Run(() => Output());
 
 while (true)
@@ -48,7 +53,10 @@ while (true)
     }
     try
     {
-        await Task.Run(async () => UpdateData((await udpClient.ReceiveAsync()).Buffer));
+        // awaiting may cause some additional messages loss;
+        // otherwise we should use lock on critical section "UpdateData" that would cause fast increase of memory usage that will make work of application impossible
+        // (large queue of threads waiting for release of critical section)
+        await Task.Run(async () => UpdateData((await udpClient.ReceiveAsync()).Buffer)); 
     }
     catch { };
 }
@@ -66,7 +74,9 @@ partial class Program
     private static bool useDelay = false;
     private static System.Timers.Timer? timer;
 
-    private static DataTable dt = new(); // stores received values and their frequencies; always oredered and grouped by value to calculate mediane and mode 
+    // stores received values and their frequencies;
+    // always oredered and grouped by values to calculate mediane and mode
+    private static DataTable dt = new(); 
 
     private static Int64 messagesCount = 0; 
     private static Int64 lostMessagesCount = 0; 
@@ -93,26 +103,33 @@ partial class Program
 
     private static EnumerableRowCollection<DataRow> UpdateTable(Int64 value)
     {
+        // no use of "OrderBy" and "GroupBy" here because it would decrease performance for large data volumes;
+        // row insertion at the right place and count increment seems more efficient
+
         DataRow row;
         EnumerableRowCollection<DataRow> rows = dt.AsEnumerable();
         try
         {
-            row = rows.Where(r => r.Field<Int64>("Value") == value).First(); // if value already exists in table
-            row["Count"] = (Int64)row["Count"] + 1;                          // keep the table grouped by values
+            // value already exists in the table
+            row = rows.Where(r => r.Field<Int64>("Value") == value).First(); 
+            row["Count"] = (Int64)row["Count"] + 1; // increment keeps the table grouped by values
         }
         catch
         {
-            row = dt.NewRow(); // new value not found in the table
+            // new value not found in the table
+            row = dt.NewRow();
             row["Value"] = value;
             row["Count"] = 1;
 
             try
             {
-                dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.Where(r => r.Field<Int64>("Value") >= value).First())); // insert before row with the first value which is >= than new one to keep the table ordered by values
+                // insert before row with the first value which is >= than new one to keep the table ordered by values
+                dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.Where(r => r.Field<Int64>("Value") >= value).First()));
             }
             catch
             {
-                dt.Rows.InsertAt(row, dt.Rows.Count); // new row with the greatest value
+                // new row with the greatest value, should be last in the table
+                dt.Rows.InsertAt(row, dt.Rows.Count);
             }
         }
         return rows;
@@ -138,12 +155,16 @@ partial class Program
 
         EnumerableRowCollection<DataRow> rows = UpdateTable(value);
 
-        maxValueCount = (Int64)rows.Max(r => r["Count"]); // max frequency to define mode; if it equals 1 then all values in the table are unique, no mode defined
+        // max frequency to define mode;
+        // if it equals 1 then all values in the table are unique, no mode defined
+        maxValueCount = (Int64)rows.Max(r => r["Count"]); 
         if (maxValueCount > 1)                            
             mode = (Int64)rows.Where(r => r.Field<Int64>("Count") == maxValueCount).First()["Value"];
 
         int count = dt.Rows.Count;
-        mediane = count % 2 == 0 ? // mediane = "middle" value in ordered dataset
+
+        // mediane = "middle" value in ordered dataset
+        mediane = count % 2 == 0 ? 
                   ((double)dt.Rows[count / 2 - 1]["Value"] + (double)dt.Rows[count / 2]["Value"]) / 2.0 :
                   (Int64)dt.Rows[(count + 1) / 2 - 1]["Value"];
     }
