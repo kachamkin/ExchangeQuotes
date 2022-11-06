@@ -36,7 +36,7 @@ while (true)
     BitConverter.GetBytes(random.NextInt64(minValue, maxValue)).CopyTo(buffer, halfBufferLength);
     try
     {
-        udpClient.SendAsync(buffer, bufferLength, endPoint);
+        await udpClient.SendAsync(buffer, bufferLength, endPoint); // await to synchronize message sending and sequential increment message number
         messageNumber++;
     }
     catch { };

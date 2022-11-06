@@ -54,7 +54,7 @@ while (true)
     try
     {
         // awaiting may cause some additional messages loss;
-        // otherwise we should use lock on critical section "UpdateData" that would cause fast increase of memory usage that will make work of application impossible
+        // otherwise we could get fast increase of memory usage that will make work of application impossible
         // (large queue of threads waiting for release of critical section)
         await Task.Run(async () => UpdateData((await udpClient.ReceiveAsync()).Buffer)); 
     }
@@ -89,16 +89,22 @@ partial class Program
     private static Int64 mode = 0;
     private static Int64 maxValueCount = 0;
 
+    private static object locker = new();
+
     private static void Output()
     {
         if (Console.ReadKey().Key == ConsoleKey.Enter)
         {
-            Console.WriteLine("\nTotal messages received: " + messagesCount);
-            Console.WriteLine("Total messages lost:     " + lostMessagesCount);
-            Console.WriteLine("Average:                 " + average);
-            Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)));
-            Console.WriteLine("Mediane:                 " + mediane);
-            Console.WriteLine("Mode:                    " + (maxValueCount > 1 ? mode + " with frequency " + maxValueCount : "none"));
+            // lock data access while output to avoid asynchrony side effects
+            lock (locker)
+            {
+                Console.WriteLine("\nTotal messages received: " + messagesCount.ToString("n0"));
+                Console.WriteLine("Total messages lost:     " + lostMessagesCount.ToString("n0"));
+                Console.WriteLine("Average:                 " + average.ToString("n"));
+                Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)));
+                Console.WriteLine("Mediane:                 " + mediane.ToString("n0"));
+                Console.WriteLine("Mode:                    " + (maxValueCount > 1 ? mode.ToString("n0") + " with frequency " + maxValueCount.ToString("n0") : "none"));
+            }
         }
         Output();
     }
@@ -139,36 +145,44 @@ partial class Program
 
     private static void UpdateData(byte[] rawData)
     {
-        messagesCount++;
+        // lock to guarantee sequential access to data in critical section while processing to avoid asynchrony side effects
+        lock (locker) 
+        {
+            messagesCount++;
 
-        byte[] halfMessage = new byte[halfBufferLength]; // 8 bytes
+            byte[] halfMessage = new byte[halfBufferLength]; // 8 bytes
 
-        Array.Copy(rawData, halfMessage, halfBufferLength);
-        lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - messagesCount; // first 8 bytes are message number
+            Array.Copy(rawData, halfMessage, halfBufferLength);
+            // lost messages count can be negative (!) if this packet received "too late"
+            // (messages with greater numbers received earlier so total count of received messages is greater than current message number);
+            // it's possible due to asynchronous nature of data sending, receiving and processing;
+            // could be watched if random interval is small enough and random generation is fast
+            lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - messagesCount; // first 8 bytes are message number
 
-        Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
-        Int64 value = BitConverter.ToInt64(halfMessage, 0);                       // last 8 bytes are received value
+            Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
+            Int64 value = BitConverter.ToInt64(halfMessage, 0);                       // last 8 bytes are received value
 
-        sum += value;
-        average = (double)sum / messagesCount;
+            sum += value;
+            average = (double)sum / messagesCount;
 
-        double deviation = (double)value - average;
-        deviationSum += deviation * deviation;
+            double deviation = (double)value - average;
+            deviationSum += deviation * deviation;
 
-        EnumerableRowCollection<DataRow> rows = UpdateTable(value);
+            EnumerableRowCollection<DataRow> rows = UpdateTable(value);
 
-        // max frequency to define mode;
-        // if it equals 1 then all values in the table are unique, no mode defined
-        maxValueCount = (Int64)rows.Max(r => r["Count"]); 
-        if (maxValueCount > 1)                            
-            mode = (Int64)rows.Where(r => r.Field<Int64>("Count") == maxValueCount).First()["Value"];
+            // max frequency to define mode;
+            // if it equals 1 then all values in the table are unique, no mode defined
+            maxValueCount = (Int64)rows.Max(r => r["Count"]);
+            if (maxValueCount > 1)
+                mode = (Int64)rows.Where(r => r.Field<Int64>("Count") == maxValueCount).First()["Value"];
 
-        int count = dt.Rows.Count;
+            int count = dt.Rows.Count;
 
-        // mediane = "middle" value in ordered dataset
-        mediane = count % 2 == 0 ? 
-                  ((double)dt.Rows[count / 2 - 1]["Value"] + (double)dt.Rows[count / 2]["Value"]) / 2.0 :
-                  (Int64)dt.Rows[(count + 1) / 2 - 1]["Value"];
+            // mediane = "middle" value in ordered dataset
+            mediane = count % 2 == 0 ?
+                      ((double)dt.Rows[count / 2 - 1]["Value"] + (double)dt.Rows[count / 2]["Value"]) / 2.0 :
+                      (Int64)dt.Rows[(count + 1) / 2 - 1]["Value"];
+        }
     }
 
     public static bool GetSettings()

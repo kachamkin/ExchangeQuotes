@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <settings>
-	<GroupAddress>224.0.0.5</GroupAddress>
-	<Port>5005</Port>
+	<GroupAddress>224.0.0.10</GroupAddress>
+	<Port>5055</Port>
 	<DelayPeriodicity>0</DelayPeriodicity>
 	<DelayDuration>0</DelayDuration>
 	<TTL>0</TTL>
