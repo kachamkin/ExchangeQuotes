@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Xml;
@@ -15,7 +16,6 @@ if (delayPeriodicity != 0 && delayDuration >= delayPeriodicity)
     return;
 }
 
-UdpClient udpClient;
 try
 {
     udpClient = new(port);
@@ -41,7 +41,10 @@ if (delayPeriodicity > 0 && delayDuration > 0) // force messages loss
     timer.Start();
 }
 
-// wait for the user's "Enter"
+Console.WriteLine("\nPlease use \"Q\" to exit, correctly free network resources and avoid side effects\n");
+
+// wait for the user's "Enter" or "Q"
+// use "Q" to free network resources and avoid side effects
 Task.Run(() => Output());
 
 while (true)
@@ -68,6 +71,7 @@ partial class Program
     private static int port;
     private static IPAddress? groupAddress;
     private static int ttl; // multicast TTL
+    private static UdpClient? udpClient;
 
     private static int delayPeriodicity = 0;
     private static int delayDuration = 0;
@@ -93,7 +97,8 @@ partial class Program
 
     private static void Output()
     {
-        if (Console.ReadKey().Key == ConsoleKey.Enter)
+        ConsoleKey keyPressed = Console.ReadKey().Key;
+        if (keyPressed == ConsoleKey.Enter)
         {
             // lock data access while output to avoid asynchrony side effects
             lock (locker)
@@ -101,11 +106,20 @@ partial class Program
                 Console.WriteLine("\nTotal messages received: " + messagesCount.ToString("n0"));
                 Console.WriteLine("Total messages lost:     " + lostMessagesCount.ToString("n0"));
                 Console.WriteLine("Average:                 " + average.ToString("n"));
-                Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)));
+                Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)).ToString("n"));
                 Console.WriteLine("Mediane:                 " + mediane.ToString("n0"));
                 Console.WriteLine("Mode:                    " + (maxValueCount > 1 ? mode.ToString("n0") + " with frequency " + maxValueCount.ToString("n0") : "none"));
             }
         }
+        // use "Q" to free network resources and avoid side effects
+        else if (keyPressed == ConsoleKey.Q)
+        {
+            udpClient?.Close();
+            udpClient?.Dispose();
+            Process.GetCurrentProcess().Kill();
+        }
+        Output();
+
         Output();
     }
 
@@ -153,7 +167,7 @@ partial class Program
             byte[] halfMessage = new byte[halfBufferLength]; // 8 bytes
 
             Array.Copy(rawData, halfMessage, halfBufferLength);
-            // lost messages count can be negative (!) if this packet received "too late"
+            // lost messages count can be negative (!) if the packet received "too late"
             // (messages with greater numbers received earlier so total count of received messages is greater than current message number);
             // it's possible due to asynchronous nature of data sending, receiving and processing;
             // could be watched if random interval is small enough and random generation is fast

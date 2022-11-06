@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Xml;
 
@@ -14,7 +15,6 @@ if (maxValue <= minValue)
     return;
 }
 
-using UdpClient udpClient = new();
 IPEndPoint endPoint;
 try
 {
@@ -30,13 +30,20 @@ Int64 messageNumber = 1;
 Random random = new();
 byte[] buffer = new byte[bufferLength]; // buffer to send; first 8 bytes = messageNumber, last 8 bytes = random value
 
+Console.WriteLine("\nPlease use \"Q\" to exit, correctly free network resources and avoid side effects\n");
+
+// wait for the user's "Esc"
+// use "Esc" to free network resources and avoid side effects
+Task.Run(() => Output());
+
 while (true)
 {
     BitConverter.GetBytes(messageNumber).CopyTo(buffer, 0);
     BitConverter.GetBytes(random.NextInt64(minValue, maxValue)).CopyTo(buffer, halfBufferLength);
     try
     {
-        await udpClient.SendAsync(buffer, bufferLength, endPoint); // await to synchronize message sending and sequential increment message number
+        // await to synchronize message sending and sequential increment message number
+        await udpClient.SendAsync(buffer, bufferLength, endPoint);
         messageNumber++;
     }
     catch { };
@@ -49,7 +56,21 @@ partial class Program
 
     private static IPAddress? groupAddress;
     private static int port;
+    private static UdpClient udpClient = new();
+
     private static Int64 minValue, maxValue;
+
+    // use "Q" to free network resources and avoid side effects
+    private static void Output()
+    {
+        if (Console.ReadKey().Key == ConsoleKey.Q)
+        {
+            udpClient?.Close();
+            udpClient?.Dispose();
+            Process.GetCurrentProcess().Kill();
+        }
+        Output();
+    }
 
     private static bool GetSettings()
     {
