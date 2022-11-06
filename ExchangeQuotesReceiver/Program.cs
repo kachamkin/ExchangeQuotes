@@ -127,13 +127,14 @@ partial class Program
     {
         // no use of "OrderBy" and "GroupBy" here because it would decrease performance for large data volumes;
         // row insertion at the right place and count increment seems more efficient
+        // especially using LINQ Parallel to distribute search between two processor cores or more
 
         DataRow row;
         EnumerableRowCollection<DataRow> rows = dt.AsEnumerable();
         try
         {
             // value already exists in the table
-            row = rows.Where(r => r.Field<Int64>("Value") == value).First(); 
+            row = rows.AsParallel().Where(r => r.Field<Int64>("Value") == value).AsParallel().First(); 
             row["Count"] = (Int64)row["Count"] + 1; // increment keeps the table grouped by values
         }
         catch
@@ -146,7 +147,7 @@ partial class Program
             try
             {
                 // insert before row with the first value which is >= than new one to keep the table ordered by values
-                dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.Where(r => r.Field<Int64>("Value") >= value).First()));
+                dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.AsParallel().Where(r => r.Field<Int64>("Value") >= value).AsParallel().First()));
             }
             catch
             {
@@ -186,11 +187,13 @@ partial class Program
 
             EnumerableRowCollection<DataRow> rows = UpdateTable(value);
 
+            // further using LINQ Parallel enables to distribute search between two processor cores or more
+
             // max frequency to define mode;
             // if it equals 1 then all values in the table are unique, no mode defined
-            maxValueCount = (Int64)rows.Max(r => r["Count"]);
+            maxValueCount = (Int64)rows.AsParallel().Max(r => r["Count"]);
             if (maxValueCount > 1)
-                mode = (Int64)rows.Where(r => r.Field<Int64>("Count") == maxValueCount).First()["Value"];
+                mode = (Int64)rows.AsParallel().Where(r => r.Field<Int64>("Count") == maxValueCount).AsParallel().First()["Value"];
 
             int count = dt.Rows.Count;
 

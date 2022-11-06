@@ -39,9 +39,9 @@ Task.Run(() => Output());
 while (true)
 {
     BitConverter.GetBytes(messageNumber).CopyTo(buffer, 0);
-    BitConverter.GetBytes(random.NextInt64(minValue, maxValue)).CopyTo(buffer, halfBufferLength);
     try
     {
+        BitConverter.GetBytes(random.NextInt64(minValue, maxValue)).CopyTo(buffer, halfBufferLength);
         // await to synchronize message sending and sequential increment message number
         await udpClient.SendAsync(buffer, bufferLength, endPoint);
         messageNumber++;
