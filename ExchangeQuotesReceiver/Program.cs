@@ -104,7 +104,7 @@ partial class Program
             lock (locker)
             {
                 Console.WriteLine("\nTotal messages received: " + messagesCount.ToString("n0"));
-                Console.WriteLine("Total messages lost:     " + lostMessagesCount.ToString("n0"));
+                Console.WriteLine("Total messages \"lost\":   " + lostMessagesCount.ToString("n0"));
                 Console.WriteLine("Average:                 " + average.ToString("n"));
                 Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)).ToString("n"));
                 Console.WriteLine("Mediane:                 " + mediane.ToString("n0"));
@@ -167,10 +167,12 @@ partial class Program
             byte[] halfMessage = new byte[halfBufferLength]; // 8 bytes
 
             Array.Copy(rawData, halfMessage, halfBufferLength);
+            
             // lost messages count can be negative (!) if the packet received "too late"
             // (messages with greater numbers received earlier so total count of received messages is greater than current message number);
             // it's possible due to asynchronous nature of data sending, receiving and processing;
-            // could be watched if random interval is small enough and random generation is fast
+            // could be watched if random interval is small enough and random generation is fast;
+            // because of this it's very rough estimate — "lost" packets can be received later and estimate will decrease in such case
             lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - messagesCount; // first 8 bytes are message number
 
             Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
