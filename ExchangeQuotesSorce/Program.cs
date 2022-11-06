@@ -53,16 +53,16 @@ partial class Program
 
     private static bool GetSettings()
     {
-        XmlDocument Settings = new();
+        XmlDocument settings = new();
         try
         {
-            Settings.Load("Settings.xml");
-            XmlElement? Element = Settings.DocumentElement;
+            settings.Load("Settings.xml");
+            XmlElement? element = settings.DocumentElement;
 
-            groupAddress = IPAddress.Parse(Element.SelectSingleNode("GroupAddress").InnerText);
-            port = int.Parse(Element.SelectSingleNode("Port").InnerText);
-            minValue = Int64.Parse(Element.SelectSingleNode("MinValue").InnerText);
-            maxValue = Int64.Parse(Element.SelectSingleNode("MaxValue").InnerText);
+            groupAddress = IPAddress.Parse(element.SelectSingleNode("GroupAddress").InnerText);
+            port = int.Parse(element.SelectSingleNode("Port").InnerText);
+            minValue = Int64.Parse(element.SelectSingleNode("MinValue").InnerText);
+            maxValue = Int64.Parse(element.SelectSingleNode("MaxValue").InnerText);
 
             return true;
         }

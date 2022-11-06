@@ -150,17 +150,17 @@ partial class Program
 
     public static bool GetSettings()
     {
-        XmlDocument Settings = new();
+        XmlDocument settings = new();
         try
         {
-            Settings.Load("Settings.xml");
-            XmlElement? Element = Settings.DocumentElement;
+            settings.Load("Settings.xml");
+            XmlElement? element = settings.DocumentElement;
 
-            groupAddress = IPAddress.Parse(Element.SelectSingleNode("GroupAddress").InnerText);
-            port = int.Parse(Element.SelectSingleNode("Port").InnerText);
-            ttl = int.Parse(Element.SelectSingleNode("TTL").InnerText);
-            delayPeriodicity = int.Parse(Element.SelectSingleNode("DelayPeriodicity").InnerText);
-            delayDuration = int.Parse(Element.SelectSingleNode("DelayDuration").InnerText);
+            groupAddress = IPAddress.Parse(element.SelectSingleNode("GroupAddress").InnerText);
+            port = int.Parse(element.SelectSingleNode("Port").InnerText);
+            ttl = int.Parse(element.SelectSingleNode("TTL").InnerText);
+            delayPeriodicity = int.Parse(element.SelectSingleNode("DelayPeriodicity").InnerText);
+            delayDuration = int.Parse(element.SelectSingleNode("DelayDuration").InnerText);
 
             return true;
         }
