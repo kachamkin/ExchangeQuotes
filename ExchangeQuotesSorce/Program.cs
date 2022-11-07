@@ -32,8 +32,8 @@ byte[] buffer = new byte[bufferLength]; // buffer to send; first 8 bytes = messa
 
 Console.WriteLine("\nPlease use \"Q\" to exit, correctly free network resources and avoid side effects\n");
 
-// wait for the user's "Esc"
-// use "Esc" to free network resources and avoid side effects
+// wait for the user's "Q"
+// use "Q" to free network resources and avoid side effects
 Task.Run(() => Output());
 
 while (true)
