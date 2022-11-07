@@ -145,7 +145,7 @@ partial class Program
         try
         {
             // value already exists in the table
-            row = rows.AsParallel().Where(r => r.Field<Int64>("Value") == value).First(); 
+            row = rows.AsParallel().Where(r => (Int64)r["Value"] == value).First(); 
             row["Count"] = (Int64)row["Count"] + 1; // increment keeps the table grouped by values
         }
         catch
@@ -158,7 +158,7 @@ partial class Program
             try
             {
                 // insert before row with the first value which is >= than new one to keep the table ordered by values
-                dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.AsParallel().AsOrdered().Where(r => r.Field<Int64>("Value") >= value).First()));
+                dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.AsParallel().AsOrdered().Where(r => (Int64)r["Value"] >= value).First()));
             }
             catch
             {
@@ -206,7 +206,7 @@ partial class Program
             // if it equals 1 then all values in the table are unique, no mode defined
             maxValueCount = (Int64)rows.AsParallel().Max(r => r["Count"]);
             if (maxValueCount > 1)
-                mode = (Int64)rows.AsParallel().Where(r => r.Field<Int64>("Count") == maxValueCount).First()["Value"];
+                mode = (Int64)rows.AsParallel().Where(r => (Int64)r["Count"] == maxValueCount).First()["Value"];
 
             int count = dt.Rows.Count;
 
