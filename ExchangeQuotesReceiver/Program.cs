@@ -94,7 +94,7 @@ partial class Program
     private static double average = 0;
     private static double deviationSum = 0;
     private static double mediane = 0;
-    private static Int64 mode = 0;
+    private static List<Int64> modes = new();
     private static Int64 maxValueCount = 0;
     private static Int64 initMessageNumber = - 1;
 
@@ -113,7 +113,11 @@ partial class Program
                 Console.WriteLine("Average:                 " + average.ToString("n"));
                 Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)).ToString("n"));
                 Console.WriteLine("Mediane:                 " + mediane.ToString("n0"));
-                Console.WriteLine("Mode:                    " + (maxValueCount > 1 ? mode.ToString("n0") + " with frequency " + maxValueCount.ToString("n0") : "none"));
+                if (maxValueCount <= 1)
+                    Console.WriteLine("Mode:                 none");
+                else
+                    foreach (Int64 m in modes)
+                        Console.WriteLine("Mode:                    " + m.ToString("n0") + " with frequency " + maxValueCount.ToString("n0"));
             }
         }
         // use "Q" to free network resources and avoid side effects
@@ -206,7 +210,12 @@ partial class Program
             // if it equals 1 then all values in the table are unique, no mode defined
             maxValueCount = (Int64)rows.AsParallel().Max(r => r["Count"]);
             if (maxValueCount > 1)
-                mode = (Int64)rows.AsParallel().Where(r => (Int64)r["Count"] == maxValueCount).First()["Value"];
+            {
+                modes.Clear();
+                ParallelQuery pq = rows.AsParallel().AsOrdered().Where(r => (Int64)r["Count"] == maxValueCount);
+                foreach (DataRow row in pq)
+                    modes.Add((Int64)row["Value"]);
+            }
 
             int count = dt.Rows.Count;
 
