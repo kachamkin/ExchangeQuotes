@@ -132,8 +132,6 @@ partial class Program
             Process.GetCurrentProcess().Kill();
         }
         Output();
-
-        Output();
     }
 
     private static EnumerableRowCollection<DataRow> UpdateTable(Int64 value)
