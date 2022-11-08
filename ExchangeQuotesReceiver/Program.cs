@@ -126,11 +126,11 @@ partial class Program
         else if (keyPressed == ConsoleKey.Q)
         {
             if (timer != null)
+            {
                 if (timer.Enabled)
-                {
                     timer.Stop();
-                    timer.Dispose();
-                }
+                timer.Dispose();
+            }
 
             udpClient?.Close();
             udpClient?.Dispose();
