@@ -116,7 +116,7 @@ partial class Program
                 if (maxValueCount <= 1)
                     Console.WriteLine("Mode:                 none");
                 else
-                    Parallel.ForEach<Int64>(modes, (Int64 m) =>
+                    Parallel.ForEach<Int64>(modes, m =>
                         Console.WriteLine("Mode:                    " + m.ToString("n0") + " with frequency " + maxValueCount.ToString("n0")));
             }
         }
@@ -212,7 +212,7 @@ partial class Program
             if (maxValueCount > 1)
             {
                 modes.Clear();
-                Parallel.ForEach<DataRow>(rows.AsParallel().Where(r => (Int64)r["Count"] == maxValueCount), (row) => modes.Add((Int64)row["Value"]));
+                Parallel.ForEach<DataRow>(rows.AsParallel().Where(r => (Int64)r["Count"] == maxValueCount), r => modes.Add((Int64)r["Value"]));
             }
 
             int count = dt.Rows.Count;
