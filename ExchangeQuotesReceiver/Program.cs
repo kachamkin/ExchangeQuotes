@@ -98,6 +98,8 @@ partial class Program
     private static Int64 maxValueCount = 0;
     private static Int64 initMessageNumber = - 1;
 
+    private static byte[] halfMessage = new byte[halfBufferLength]; // 8 bytes
+
     private static readonly object locker = new();
 
     private static void Output()
@@ -179,8 +181,6 @@ partial class Program
         lock (locker) 
         {
             messagesCount++;
-
-            byte[] halfMessage = new byte[halfBufferLength]; // 8 bytes
 
             Array.Copy(rawData, halfMessage, halfBufferLength);
             if (initMessageNumber == - 1)
