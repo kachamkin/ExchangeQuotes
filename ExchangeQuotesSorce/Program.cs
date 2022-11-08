@@ -56,7 +56,7 @@ partial class Program
 
     private static IPAddress? groupAddress;
     private static int port;
-    private static UdpClient udpClient = new();
+    private static readonly UdpClient udpClient = new();
 
     private static Int64 minValue, maxValue;
 
