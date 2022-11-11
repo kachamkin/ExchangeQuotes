@@ -28,7 +28,7 @@ catch
 
 Int64 messageNumber = 1;
 Random random = new();
-byte[] buffer = new byte[bufferLength]; // buffer to send; first 8 bytes = messageNumber, last 8 bytes = random value
+byte[] buffer = new byte[bufferLength]; 
 
 Console.WriteLine("\nPlease use \"Q\" to exit, correctly free network resources and avoid side effects\n");
 
@@ -41,9 +41,10 @@ while (true)
     BitConverter.GetBytes(messageNumber).CopyTo(buffer, 0);
     try
     {
-        //BitConverter.GetBytes(random.NextInt64(minValue, maxValue)).CopyTo(buffer, halfBufferLength);
-        BitConverter.GetBytes((Int64)Math.Round(GetGaussian(random, minValue, maxValue), 1, MidpointRounding.ToEven)).CopyTo(buffer, halfBufferLength);
-        // await to synchronize message sending and sequential increment message number
+        if (gaussian)
+            BitConverter.GetBytes((Int64)Math.Round(GetGaussian(random, minValue, maxValue), 1, MidpointRounding.ToEven)).CopyTo(buffer, halfBufferLength);
+        else
+            BitConverter.GetBytes(random.NextInt64(minValue, maxValue)).CopyTo(buffer, halfBufferLength);
         await udpClient.SendAsync(buffer, bufferLength, endPoint);
         messageNumber++;
     }
@@ -60,6 +61,7 @@ partial class Program
     private static readonly UdpClient udpClient = new();
 
     private static Int64 minValue, maxValue;
+    private static bool gaussian;
 
     private static double GetGaussian(Random rand, double mean, double stdDev)
     {
@@ -90,6 +92,7 @@ partial class Program
             port = int.Parse(element.SelectSingleNode("Port").InnerText);
             minValue = Int64.Parse(element.SelectSingleNode("MinValue").InnerText);
             maxValue = Int64.Parse(element.SelectSingleNode("MaxValue").InnerText);
+            gaussian = element.SelectSingleNode("DistributionType").InnerText == "Gaussian";
 
             return true;
         }
