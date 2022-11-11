@@ -2,7 +2,8 @@
 <settings>
 	<GroupAddress>224.116.88.9</GroupAddress>
 	<Port>5055</Port>
-	<DelayPeriodicity>0</DelayPeriodicity>
-	<DelayDuration>0</DelayDuration>
+	<DelayPeriodicity>10</DelayPeriodicity>
+	<MedianeInterval>1000</MedianeInterval>
+	<ModeStep>100</ModeStep>
 	<TTL>50</TTL>
 </settings>

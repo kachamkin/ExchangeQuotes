@@ -10,7 +10,13 @@ if (!GetSettings())
     return;
 }
 
-if (delayPeriodicity != 0 && delayDuration >= delayPeriodicity)
+if (medianeInterval <= 0 || modeStep == 0 || modeStep >= medianeInterval || medianeInterval % modeStep != 0)
+{
+    Console.WriteLine("Invalid parameters for mediane / mode calculation!");
+    return;
+}
+
+if (delayPeriodicity < 0)
 {
     Console.WriteLine("Invalid delay parameters!");
     return;
@@ -19,13 +25,7 @@ if (delayPeriodicity != 0 && delayDuration >= delayPeriodicity)
 try
 {
     udpClient = new(port);
-    
-    // buffer should be large enough to avoid or reduce packets loss
     udpClient.Client.ReceiveBufferSize = receiveBufferSize; 
-
-    // multicast reduces reliability;
-    // direct sending of UDP packets to the receiver's IP causes less packets loss;
-    // TCP of course would be more reliable (and slower)
     udpClient.JoinMulticastGroup(groupAddress, ttl); 
 }
 catch
@@ -37,31 +37,14 @@ catch
 dt.Columns.Add("Value", typeof(Int64));
 dt.Columns.Add("Count", typeof(Int64));
 
-if (delayPeriodicity > 0 && delayDuration > 0) // force messages loss
-{
-    timer = new(delayPeriodicity);
-    timer.Elapsed += (sender, eventArgs) => useDelay = true;
-    timer.Start();
-}
-
 Console.WriteLine("\nPlease use \"Q\" to exit, correctly free network resources and avoid side effects\n");
 
-// wait for the user's "Enter" or "Q"
-// use "Q" to free network resources and avoid side effects
 Task.Run(() => Output());
 
 while (true)
 {
-    if (useDelay)
-    {
-        useDelay = false;
-        Thread.Sleep(delayDuration); // force messages loss
-    }
     try
     {
-        // awaiting may cause some additional messages loss;
-        // otherwise we could get fast increase of memory usage that will make work of application impossible
-        // (large queue of threads waiting for release of critical section)
         await Task.Run(async () => UpdateData((await udpClient.ReceiveAsync()).Buffer)); 
     }
     catch { };
@@ -74,18 +57,11 @@ partial class Program
 
     private static int port;
     private static IPAddress? groupAddress;
-    private static int ttl; // multicast TTL
+    private static int ttl; 
     private static UdpClient? udpClient;
 
     private static int delayPeriodicity = 0;
-    private static int delayDuration = 0;
-    private static bool useDelay = false;
-    private static System.Timers.Timer? timer;
 
-    // stores received values and their frequencies;
-    // always oredered and grouped by values;
-    // increases permormance: smaller memory usage and faster data access — no need to store all large set of received data;
-    // necessary only for mediane and mode calculation
     private static readonly DataTable dt = new(); 
 
     private static Int64 messagesCount = 0; 
@@ -94,44 +70,29 @@ partial class Program
     private static double average = 0;
     private static double deviationSum = 0;
     private static double mediane = 0;
-    private static List<Int64> modes = new();
+    private static double mode;
     private static Int64 maxValueCount = 0;
     private static Int64 initMessageNumber = - 1;
+    private static int medianeInterval;
+    private static int modeStep;
+    private static List<Int64> interValues = new();
 
-    private static byte[] halfMessage = new byte[halfBufferLength]; // 8 bytes
-
-    private static readonly object locker = new();
+    private static readonly byte[] halfMessage = new byte[halfBufferLength]; 
 
     private static void Output()
     {
         ConsoleKey keyPressed = Console.ReadKey().Key;
         if (keyPressed == ConsoleKey.Enter)
         {
-            // lock data access while output to avoid asynchrony side effects
-            lock (locker)
-            {
-                Console.WriteLine("\nTotal messages received: " + messagesCount.ToString("n0"));
-                Console.WriteLine("Total messages \"lost\":   " + lostMessagesCount.ToString("n0"));
-                Console.WriteLine("Average:                 " + average.ToString("n"));
-                Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)).ToString("n"));
-                Console.WriteLine("Mediane:                 " + mediane.ToString("n0"));
-                if (maxValueCount <= 1)
-                    Console.WriteLine("Mode:                 none");
-                else
-                    Parallel.ForEach(modes, m =>
-                        Console.WriteLine("Mode:                    " + m.ToString("n0") + " with frequency " + maxValueCount.ToString("n0")));
-            }
+            Console.WriteLine("\nTotal messages received: " + messagesCount.ToString("n0"));
+            Console.WriteLine("Total messages \"lost\":   " + lostMessagesCount.ToString("n0"));
+            Console.WriteLine("Average:                 " + average.ToString("n"));
+            Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)).ToString("n"));
+            Console.WriteLine("Mediane:                 " + mediane.ToString("n0"));
+            Console.WriteLine("Mode:                    " + mode.ToString("n0"));
         }
-        // use "Q" to free network resources and avoid side effects
         else if (keyPressed == ConsoleKey.Q)
         {
-            if (timer != null)
-            {
-                if (timer.Enabled)
-                    timer.Stop();
-                timer.Dispose();
-            }
-
             udpClient?.Close();
             udpClient?.Dispose();
 
@@ -140,87 +101,90 @@ partial class Program
         Output();
     }
 
-    private static EnumerableRowCollection<DataRow> UpdateTable(Int64 value)
+    private static double GetExactMediane()
     {
-        // no use of "OrderBy" and "GroupBy" here because it would reduce performance for large data volumes;
-        // row insertion at the right place and count increment seems more efficient
-        // especially using LINQ Parallel to distribute search between two processor cores or more
+        interValues = interValues.AsParallel().OrderBy(x => x).ToList();
 
-        DataRow row;
+        int count = interValues.Count;
+
+        return count % 2 == 0 ?
+                      ((double)interValues[count / 2 - 1] + (double)interValues[count / 2]) / 2.0 :
+                      interValues[(count + 1) / 2 - 1];
+    }
+    private static double? GetMode()
+    {
         EnumerableRowCollection<DataRow> rows = dt.AsEnumerable();
         try
         {
-            // value already exists in the table
-            row = rows.AsParallel().Where(r => (Int64)r["Value"] == value).First(); 
-            row["Count"] = (Int64)row["Count"] + 1; // increment keeps the table grouped by values
+            maxValueCount = (Int64)rows.AsParallel().Max(r => (Int64)r["Count"]);
         }
-        catch
-        {
-            // new value not found in the table
-            row = dt.NewRow();
-            row["Value"] = value;
-            row["Count"] = 1;
+        catch { return null; };
 
+        if (maxValueCount > 1)
+        {
+            DataRow row = rows.AsParallel().Where(r => (Int64)r["Count"] == maxValueCount).First();
+            Int64 fm0 = (Int64)row["Count"];
+
+            int rowInd = dt.Rows.IndexOf(row);
+            Int64 fm0_1 = rowInd == 0 ? 0 : (Int64)dt.Rows[rowInd - 1]["Count"];
+            Int64 fm01 = rowInd == dt.Rows.Count - 1 ? 0 : (Int64)dt.Rows[rowInd + 1]["Count"];
+
+            return (Int64)row["Value"] - 0.5 * modeStep + modeStep * (fm0 - fm0_1) / (2.0 * fm0 - fm0_1 - fm01);
+        }
+        return null;
+    }
+
+    private static double GetExactMode()
+    {
+        dt.Rows.Clear();
+        Int64 step = medianeInterval / modeStep;
+        foreach (Int64 v in interValues)
+            UpdateTable(((v % step >= step / 2 ? v + step : v) / step) * step);
+        
+        double? exMode = GetMode();
+        return exMode == null ? 0 : exMode.Value; 
+    }
+
+    private static void UpdateTable(Int64 value)
+    {
+        DataRow row;
             try
             {
-                // insert before row with the first value which is >= than new one to keep the table ordered by values
-                dt.Rows.InsertAt(row, dt.Rows.IndexOf(rows.AsParallel().AsOrdered().Where(r => (Int64)r["Value"] >= value).First()));
+                row = dt.AsEnumerable().AsParallel().Where(r => (Int64)r["Value"] == value).First();
+                row["Count"] = (Int64)row["Count"] + 1; // increment keeps the table grouped by values
             }
             catch
             {
-                // new row with the greatest value, should be last in the table
-                dt.Rows.InsertAt(row, dt.Rows.Count);
+                row = dt.Rows.Add();
+                row["Value"] = value;
+                row["Count"] = 1;
             }
-        }
-        return rows;
     }
 
     private static void UpdateData(byte[] rawData)
     {
-        // lock to guarantee sequential access to data in critical section while processing to avoid asynchrony side effects
-        lock (locker) 
+        messagesCount++;
+
+        Array.Copy(rawData, halfMessage, halfBufferLength);
+        if (initMessageNumber == -1)
+            initMessageNumber = BitConverter.ToInt64(halfMessage, 0) - 1;
+        lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - initMessageNumber - messagesCount;
+
+        Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
+        Int64 value = BitConverter.ToInt64(halfMessage, 0);
+        interValues.Add(value);
+
+        sum += value;
+        average = (double)sum / messagesCount;
+
+        double deviation = (double)value - average;
+        deviationSum += deviation * deviation;
+
+        if (messagesCount >= medianeInterval && messagesCount % medianeInterval == 0)
         {
-            messagesCount++;
-
-            Array.Copy(rawData, halfMessage, halfBufferLength);
-            if (initMessageNumber == - 1)
-                initMessageNumber = BitConverter.ToInt64(halfMessage, 0) - 1; // number of the first received message
-
-            // lost messages count can be negative (!) if the packet received "too late"
-            // (messages with greater numbers received earlier so total count of received messages is greater than current message number);
-            // it's possible due to asynchronous nature of data sending, receiving and processing;
-            // could be watched if random interval is small enough and random generation is fast;
-            // because of this it's very rough estimate — "lost" packets can be received later and estimate will decrease in such case
-            lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - initMessageNumber - messagesCount; // first 8 bytes are message number
-
-            Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
-            Int64 value = BitConverter.ToInt64(halfMessage, 0);                       // last 8 bytes are received value
-
-            sum += value;
-            average = (double)sum / messagesCount;
-
-            double deviation = (double)value - average;
-            deviationSum += deviation * deviation;
-
-            EnumerableRowCollection<DataRow> rows = UpdateTable(value);
-
-            // further using LINQ Parallel enables to distribute search between two processor cores or more
-
-            // max frequency to define mode;
-            // if it equals 1 then all values in the table are unique, no mode defined
-            maxValueCount = (Int64)rows.AsParallel().Max(r => r["Count"]);
-            if (maxValueCount > 1)
-            {
-                modes.Clear();
-                Parallel.ForEach(rows.AsParallel().Where(r => (Int64)r["Count"] == maxValueCount), r => modes.Add((Int64)r["Value"]));
-            }
-
-            int count = dt.Rows.Count;
-
-            // mediane = "middle" value in ordered dataset
-            mediane = count % 2 == 0 ?
-                      ((double)dt.Rows[count / 2 - 1]["Value"] + (double)dt.Rows[count / 2]["Value"]) / 2.0 :
-                      (Int64)dt.Rows[(count + 1) / 2 - 1]["Value"];
+            mediane = ((messagesCount - medianeInterval) * mediane + medianeInterval * GetExactMediane()) / messagesCount;
+            mode = ((messagesCount - medianeInterval) * mode + medianeInterval * GetExactMode()) / messagesCount;
+            interValues.Clear();
         }
     }
 
@@ -231,12 +195,15 @@ partial class Program
         {
             settings.Load("Settings.xml");
             XmlElement? element = settings.DocumentElement;
+            if (element == null)
+                return false;
 
             groupAddress = IPAddress.Parse(element.SelectSingleNode("GroupAddress").InnerText);
             port = int.Parse(element.SelectSingleNode("Port").InnerText);
             ttl = int.Parse(element.SelectSingleNode("TTL").InnerText);
             delayPeriodicity = int.Parse(element.SelectSingleNode("DelayPeriodicity").InnerText);
-            delayDuration = int.Parse(element.SelectSingleNode("DelayDuration").InnerText);
+            medianeInterval = int.Parse(element.SelectSingleNode("MedianeInterval").InnerText);
+            modeStep = int.Parse(element.SelectSingleNode("ModeStep").InnerText);
 
             return true;
         }

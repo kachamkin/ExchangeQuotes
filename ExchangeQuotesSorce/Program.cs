@@ -9,11 +9,11 @@ if (!GetSettings())
     return;
 }
 
-if (maxValue <= minValue)
-{
-    Console.WriteLine("Invalid random numbers interval!");
-    return;
-}
+//if (maxValue <= minValue)
+//{
+//    Console.WriteLine("Invalid random numbers interval!");
+//    return;
+//}
 
 IPEndPoint endPoint;
 try
@@ -41,7 +41,8 @@ while (true)
     BitConverter.GetBytes(messageNumber).CopyTo(buffer, 0);
     try
     {
-        BitConverter.GetBytes(random.NextInt64(minValue, maxValue)).CopyTo(buffer, halfBufferLength);
+        //BitConverter.GetBytes(random.NextInt64(minValue, maxValue)).CopyTo(buffer, halfBufferLength);
+        BitConverter.GetBytes((Int64)Math.Round(GetGaussian(random, minValue, maxValue), 1, MidpointRounding.ToEven)).CopyTo(buffer, halfBufferLength);
         // await to synchronize message sending and sequential increment message number
         await udpClient.SendAsync(buffer, bufferLength, endPoint);
         messageNumber++;
@@ -59,6 +60,11 @@ partial class Program
     private static readonly UdpClient udpClient = new();
 
     private static Int64 minValue, maxValue;
+
+    private static double GetGaussian(Random rand, double mean, double stdDev)
+    {
+        return mean + stdDev * Math.Sqrt(-2.0 * Math.Log(1.0 - rand.NextDouble())) * Math.Sin(2.0 * Math.PI * (1.0 - rand.NextDouble()));
+    }
 
     // use "Q" to free network resources and avoid side effects
     private static void Output()
