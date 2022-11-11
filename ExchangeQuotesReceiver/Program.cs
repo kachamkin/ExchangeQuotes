@@ -10,7 +10,7 @@ if (!GetSettings())
     return;
 }
 
-if (medianeInterval <= 0 || modeStep == 0 || modeStep >= medianeInterval || medianeInterval % modeStep != 0)
+if (medianeInterval <= 0 || modeStep <= 0 )
 {
     Console.WriteLine("Invalid parameters for mediane / mode calculation!");
     return;
@@ -34,8 +34,8 @@ catch
     return;
 }
 
-dt.Columns.Add("Value", typeof(Int64));
-dt.Columns.Add("Count", typeof(Int64));
+//dt.Columns.Add("Value", typeof(Int64));
+//dt.Columns.Add("Count", typeof(Int64));
 
 Console.WriteLine("\nPlease use \"Q\" to exit, correctly free network resources and avoid side effects\n");
 
@@ -62,7 +62,7 @@ partial class Program
 
     private static int delayPeriodicity = 0;
 
-    private static readonly DataTable dt = new(); 
+    private static readonly SortedDictionary<Int64, Int64> dt = new();
 
     private static Int64 messagesCount = 0; 
     private static Int64 lostMessagesCount = 0; 
@@ -113,33 +113,40 @@ partial class Program
     }
     private static double? GetMode()
     {
-        EnumerableRowCollection<DataRow> rows = dt.AsEnumerable();
-        try
-        {
-            maxValueCount = (Int64)rows.AsParallel().Max(r => (Int64)r["Count"]);
-        }
-        catch { return null; };
+        ParallelQuery<KeyValuePair<Int64, Int64>> rows = dt.AsParallel();
+        if (rows.Count() != 0)
+            maxValueCount = rows.Max(r => r.Value);
+        else
+            return null;
 
         if (maxValueCount > 1)
         {
-            DataRow row = rows.AsParallel().Where(r => (Int64)r["Count"] == maxValueCount).First();
-            Int64 fm0 = (Int64)row["Count"];
+            KeyValuePair<Int64, Int64> row = rows.Where(r => r.Value == maxValueCount).First();
+            Int64 fm0 = row.Value;
+            Int64 key = row.Key;
 
-            int rowInd = dt.Rows.IndexOf(row);
-            Int64 fm0_1 = rowInd == 0 ? 0 : (Int64)dt.Rows[rowInd - 1]["Count"];
-            Int64 fm01 = rowInd == dt.Rows.Count - 1 ? 0 : (Int64)dt.Rows[rowInd + 1]["Count"];
+            ParallelQuery<KeyValuePair<Int64, Int64>> ordered = rows.AsOrdered();
 
-            return (Int64)row["Value"] - 0.5 * modeStep + modeStep * (fm0 - fm0_1) / (2.0 * fm0 - fm0_1 - fm01);
+            Int64 fm0_1 = 0;
+            ParallelQuery<KeyValuePair<Int64, Int64>> pq = ordered.Where(r => r.Key < key);
+            if (pq.Count() != 0)
+                fm0_1 = pq.Last().Value; 
+
+            Int64 fm01 = 0;
+            pq = ordered.Where(r => r.Key > key);
+            if (pq.Count() != 0)
+                fm01 = pq.First().Value;
+
+            return key - 0.5 * modeStep + modeStep * (fm0 - fm0_1) / (2.0 * fm0 - fm0_1 - fm01);
         }
         return null;
     }
 
     private static double GetExactMode()
     {
-        dt.Rows.Clear();
-        Int64 step = medianeInterval / modeStep;
+        dt.Clear();
         foreach (Int64 v in interValues)
-            UpdateTable(((v % step >= step / 2 ? v + step : v) / step) * step);
+            UpdateTable(((v % modeStep >= modeStep / 2 ? v + modeStep : v) / modeStep) * modeStep);
         
         double? exMode = GetMode();
         return exMode == null ? 0 : exMode.Value; 
@@ -147,18 +154,15 @@ partial class Program
 
     private static void UpdateTable(Int64 value)
     {
-        DataRow row;
-            try
-            {
-                row = dt.AsEnumerable().AsParallel().Where(r => (Int64)r["Value"] == value).First();
-                row["Count"] = (Int64)row["Count"] + 1; 
-            }
-            catch
-            {
-                row = dt.Rows.Add();
-                row["Value"] = value;
-                row["Count"] = 1;
-            }
+        ParallelQuery<KeyValuePair<Int64, Int64>> pq = dt.AsParallel().Where(r => r.Key == value);
+        if (pq.Count() != 0)
+        {
+            dt[pq.First().Key]++;
+        }
+        else
+        {
+            dt.Add(value, 1);
+        }
     }
 
     private static void UpdateData(byte[] rawData)
