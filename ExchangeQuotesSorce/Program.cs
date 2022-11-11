@@ -9,11 +9,11 @@ if (!GetSettings())
     return;
 }
 
-//if (maxValue <= minValue)
-//{
-//    Console.WriteLine("Invalid random numbers interval!");
-//    return;
-//}
+if (!gaussian && maxValue <= minValue || gaussian && maxValue <= 0)
+{
+    Console.WriteLine("Invalid random numbers interval!");
+    return;
+}
 
 IPEndPoint endPoint;
 try
