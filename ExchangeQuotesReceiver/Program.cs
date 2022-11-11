@@ -151,7 +151,7 @@ partial class Program
             try
             {
                 row = dt.AsEnumerable().AsParallel().Where(r => (Int64)r["Value"] == value).First();
-                row["Count"] = (Int64)row["Count"] + 1; // increment keeps the table grouped by values
+                row["Count"] = (Int64)row["Count"] + 1; 
             }
             catch
             {
