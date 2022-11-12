@@ -4,6 +4,6 @@
 	<Port>5055</Port>
 	<DelayPeriodicity>10</DelayPeriodicity>
 	<MedianeInterval>1000</MedianeInterval>
-	<ModeStep>10</ModeStep>
+	<ModeStep>20</ModeStep>
 	<TTL>50</TTL>
 </settings>

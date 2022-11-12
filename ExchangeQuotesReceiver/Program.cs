@@ -105,13 +105,15 @@ partial class Program
     {
         drawChart = false;
 
-        double max = Console.BufferWidth / (dt.Max(x => x.Value) + 24.0);
+        double max = Console.BufferWidth / (dt.Max(x => x.Value) + 48.0);
         Console.Write("\n");
         foreach (KeyValuePair<Int64, Int64> item in dt)
         {
-            Console.Write(item.Key + " ");
+            Console.Write(item.Key);
+            for (int i = 0; i < 8 - item.Key.ToString().Length; i++)
+                Console.Write(" ");
             Console.BackgroundColor = ConsoleColor.DarkGray;
-            for (double i = 0; i <= item.Value * max; i++)
+            for (double i = 0; i < item.Value * max; i++)
                 Console.Write("●");
             Console.BackgroundColor = ConsoleColor.Black;
             Console.Write("\n");
@@ -121,22 +123,17 @@ partial class Program
     private static double GetMediane()
     {
         ParallelQuery<KeyValuePair<Int64, Int64>> rows = dt.AsParallel();
-
         Int64 sumF = rows.Sum(r => r.Value);
 
-        ParallelQuery<KeyValuePair<Int64, Int64>> ordered = rows.AsOrdered();
-
         Int64 s = 0;
-        KeyValuePair<Int64, Int64> row = ordered.SkipWhile(r => { s += r.Value; return s < sumF / 2; }).First();
-        Int64 fm0 = row.Value;
-        Int64 key = row.Key;
+        KeyValuePair<Int64, Int64> row = dt.SkipWhile(r => { s += r.Value; return s < sumF / 2; }).First();
 
         Int64 fm0_1 = 0;
-        ParallelQuery<KeyValuePair<Int64, Int64>> pq = ordered.Where(r => r.Key < key);
-        if (pq.Count() != 0)
+        ParallelQuery<KeyValuePair<Int64, Int64>> pq = rows.AsOrdered().Where(r => r.Key < row.Key);
+        if (pq.Any())
             fm0_1 = pq.Last().Value;
 
-        return key - 0.5 * modeStep + modeStep * (0.5 * sumF - fm0_1) / fm0;
+        return row.Key - 0.5 * modeStep + modeStep * (0.5 * sumF - fm0_1) / row.Value;
     }
 
     private static double GetMode()
@@ -147,22 +144,19 @@ partial class Program
         if (maxValueCount > 1)
         {
             KeyValuePair<Int64, Int64> row = rows.Where(r => r.Value == maxValueCount).First();
-            Int64 fm0 = row.Value;
-            Int64 key = row.Key;
-
             ParallelQuery<KeyValuePair<Int64, Int64>> ordered = rows.AsOrdered();
 
             Int64 fm0_1 = 0;
-            ParallelQuery<KeyValuePair<Int64, Int64>> pq = ordered.Where(r => r.Key < key);
-            if (pq.Count() != 0)
+            ParallelQuery<KeyValuePair<Int64, Int64>> pq = ordered.Where(r => r.Key < row.Key);
+            if (pq.Any())
                 fm0_1 = pq.Last().Value; 
 
             Int64 fm01 = 0;
-            pq = ordered.Where(r => r.Key > key);
-            if (pq.Count() != 0)
+            pq = ordered.Where(r => r.Key > row.Key);
+            if (pq.Any())
                 fm01 = pq.First().Value;
 
-            return key - 0.5 * modeStep + modeStep * (fm0 - fm0_1) / (2.0 * fm0 - fm0_1 - fm01);
+            return row.Key - 0.5 * modeStep + modeStep * (row.Value - fm0_1) / (2.0 * row.Value - fm0_1 - fm01);
         }
         return 0;
     }

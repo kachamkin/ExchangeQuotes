@@ -3,6 +3,6 @@
 	<GroupAddress>224.116.88.9</GroupAddress>
 	<Port>5055</Port>
 	<DistributionType>Gaussian</DistributionType>
-	<MinValue>500</MinValue>
+	<MinValue>0</MinValue>
 	<MaxValue>100</MaxValue>
 </settings>
