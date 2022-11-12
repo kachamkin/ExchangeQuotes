@@ -88,8 +88,8 @@ partial class Program
             Console.WriteLine("Total messages \"lost\":   " + lostMessagesCount.ToString("n0"));
             Console.WriteLine("Average:                 " + average.ToString("n"));
             Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)).ToString("n"));
-            Console.WriteLine("Mediane:                 " + mediane.ToString("n0"));
-            Console.WriteLine("Mode:                    " + mode.ToString("n0"));
+            Console.WriteLine("Mediane:                 " + mediane.ToString("n"));
+            Console.WriteLine("Mode:                    " + mode.ToString("n"));
         }
         else if (keyPressed == ConsoleKey.Q)
         {
@@ -114,7 +114,7 @@ partial class Program
     private static double? GetMode()
     {
         ParallelQuery<KeyValuePair<Int64, Int64>> rows = dt.AsParallel();
-        if (rows.Count() != 0)
+        if (dt.Count != 0)
             maxValueCount = rows.Max(r => r.Value);
         else
             return null;
