@@ -35,7 +35,6 @@ catch
 }
 
 Console.WriteLine("\nPlease use \"Q\" to exit, correctly free network resources and avoid side effects\n");
-
 Task.Run(() => Output());
 
 while (true)
@@ -68,11 +67,9 @@ partial class Program
     private static double deviationSum = 0;
     private static double mediane = 0;
     private static double mode;
-    private static Int64 maxValueCount = 0;
     private static Int64 initMessageNumber = - 1;
     private static int medianeInterval;
     private static int modeStep;
-    private static List<Int64> interValues = new();
 
     private static readonly byte[] halfMessage = new byte[halfBufferLength]; 
 
@@ -98,23 +95,31 @@ partial class Program
         Output();
     }
 
-    private static double GetExactMediane()
-    {
-        interValues = interValues.AsParallel().OrderBy(x => x).ToList();
-
-        int count = interValues.Count;
-
-        return count % 2 == 0 ?
-                      ((double)interValues[count / 2 - 1] + (double)interValues[count / 2]) / 2.0 :
-                      interValues[(count + 1) / 2 - 1];
-    }
-    private static double? GetMode()
+    private static double GetMediane()
     {
         ParallelQuery<KeyValuePair<Int64, Int64>> rows = dt.AsParallel();
-        if (dt.Count != 0)
-            maxValueCount = rows.Max(r => r.Value);
-        else
-            return null;
+
+        Int64 sumF = rows.Sum(r => r.Value);
+
+        ParallelQuery<KeyValuePair<Int64, Int64>> ordered = rows.AsOrdered();
+
+        Int64 s = 0;
+        KeyValuePair<Int64, Int64> row = ordered.SkipWhile(r => { s += r.Value; return s < sumF / 2; }).First();
+        Int64 fm0 = row.Value;
+        Int64 key = row.Key;
+
+        Int64 fm0_1 = 0;
+        ParallelQuery<KeyValuePair<Int64, Int64>> pq = ordered.Where(r => r.Key < key);
+        if (pq.Count() != 0)
+            fm0_1 = pq.Last().Value;
+
+        return key - 0.5 * modeStep + modeStep * (0.5 * sumF - fm0_1) / fm0;
+    }
+
+    private static double GetMode()
+    {
+        ParallelQuery<KeyValuePair<Int64, Int64>> rows = dt.AsParallel();
+        Int64 maxValueCount = rows.Max(r => r.Value);
 
         if (maxValueCount > 1)
         {
@@ -136,17 +141,7 @@ partial class Program
 
             return key - 0.5 * modeStep + modeStep * (fm0 - fm0_1) / (2.0 * fm0 - fm0_1 - fm01);
         }
-        return null;
-    }
-
-    private static double GetExactMode()
-    {
-        dt.Clear();
-        foreach (Int64 v in interValues)
-            UpdateTable(((v % modeStep >= modeStep / 2 ? v + modeStep : v) / modeStep) * modeStep);
-        
-        double? exMode = GetMode();
-        return exMode == null ? 0 : exMode.Value; 
+        return 0;
     }
 
     private static void UpdateTable(Int64 value)
@@ -162,13 +157,14 @@ partial class Program
         messagesCount++;
 
         Array.Copy(rawData, halfMessage, halfBufferLength);
+
+        Int64 num = BitConverter.ToInt64(halfMessage, 0);
         if (initMessageNumber == - 1)
-            initMessageNumber = BitConverter.ToInt64(halfMessage, 0) - 1;
-        lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - initMessageNumber - messagesCount;
+            initMessageNumber = num - 1;
+        lostMessagesCount = num - initMessageNumber - messagesCount;
 
         Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
         Int64 value = BitConverter.ToInt64(halfMessage, 0);
-        interValues.Add(value);
 
         sum += value;
         average = (double)sum / messagesCount;
@@ -176,11 +172,14 @@ partial class Program
         double deviation = (double)value - average;
         deviationSum += deviation * deviation;
 
+        UpdateTable(((value % modeStep >= modeStep / 2 ? value + modeStep : value) / modeStep) * modeStep);
+
         if (messagesCount >= medianeInterval && messagesCount % medianeInterval == 0)
         {
-            mediane = ((messagesCount - medianeInterval) * mediane + medianeInterval * GetExactMediane()) / messagesCount;
-            mode = ((messagesCount - medianeInterval) * mode + medianeInterval * GetExactMode()) / messagesCount;
-            interValues.Clear();
+            Int64 diff = messagesCount - medianeInterval;
+            mediane = (diff * mediane + medianeInterval * GetMediane()) / messagesCount;
+            mode = (diff * mode + medianeInterval * GetMode()) / messagesCount;
+            dt.Clear();
         }
     }
 
