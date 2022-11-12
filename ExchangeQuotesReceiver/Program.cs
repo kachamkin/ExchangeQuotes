@@ -110,7 +110,7 @@ partial class Program
         foreach (KeyValuePair<Int64, Int64> item in dt)
         {
             Console.Write(item.Key + " ");
-            Console.BackgroundColor = ConsoleColor.DarkBlue;
+            Console.BackgroundColor = ConsoleColor.DarkGray;
             for (double i = 0; i <= item.Value * max; i++)
                 Console.Write("●");
             Console.BackgroundColor = ConsoleColor.Black;
@@ -126,8 +126,8 @@ partial class Program
 
         ParallelQuery<KeyValuePair<Int64, Int64>> ordered = rows.AsOrdered();
 
-        double s = 0;
-        KeyValuePair<Int64, Int64> row = ordered.SkipWhile(r => { s += r.Value; return s < sumF / 2.0; }).First();
+        Int64 s = 0;
+        KeyValuePair<Int64, Int64> row = ordered.SkipWhile(r => { s += r.Value; return s < sumF / 2; }).First();
         Int64 fm0 = row.Value;
         Int64 key = row.Key;
 
