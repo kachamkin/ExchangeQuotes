@@ -91,7 +91,7 @@ partial class Program
             Console.WriteLine("Mode:                    " + mode.ToString("n"));
             Console.Write("\n");
             for (int i = 0; i < Console.BufferWidth - 2; i++)
-                Console.Write("-");
+                Console.Write("*");
         }
         else if (keyPressed == ConsoleKey.P)
             drawChart = true;
@@ -113,10 +113,10 @@ partial class Program
 
         Console.Write("\n");
         for (int i = 0; i < Console.BufferWidth / 2 - 12; i++)
-            Console.Write("-");
+            Console.Write("*");
         Console.Write("Packets " + (messagesCount - medianeInterval) + " - " + messagesCount);
         for (int i = 0; i < Console.BufferWidth / 2 - 12; i++)
-            Console.Write("-");
+            Console.Write("*");
         Console.Write("\n\n");
 
         foreach (KeyValuePair<Int64, Int64> item in dt)
@@ -134,7 +134,7 @@ partial class Program
 
         Console.Write("\n");
         for (int i = 0; i < Console.BufferWidth - 2; i++)
-            Console.Write("-");
+            Console.Write("*");
 
     }
 
