@@ -82,12 +82,16 @@ partial class Program
         ConsoleKey keyPressed = Console.ReadKey(true).Key;
         if (keyPressed == ConsoleKey.Enter)
         {
+            Console.Write("\n");
             Console.WriteLine("\nTotal messages received: " + messagesCount.ToString("n0"));
             Console.WriteLine("Total messages \"lost\":   " + lostMessagesCount.ToString("n0"));
             Console.WriteLine("Average:                 " + average.ToString("n"));
             Console.WriteLine("Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)).ToString("n"));
             Console.WriteLine("Mediane:                 " + mediane.ToString("n"));
             Console.WriteLine("Mode:                    " + mode.ToString("n"));
+            Console.Write("\n");
+            for (int i = 0; i < Console.BufferWidth - 2; i++)
+                Console.Write("-");
         }
         else if (keyPressed == ConsoleKey.P)
             drawChart = true;
@@ -105,8 +109,16 @@ partial class Program
     {
         drawChart = false;
 
-        double max = Console.BufferWidth / (dt.Max(x => x.Value) + 48.0);
+        double max = Console.BufferWidth / (dt.Max(x => x.Value) + 64.0);
+
         Console.Write("\n");
+        for (int i = 0; i < Console.BufferWidth / 2 - 12; i++)
+            Console.Write("-");
+        Console.Write("Packets " + (messagesCount - medianeInterval) + " - " + messagesCount);
+        for (int i = 0; i < Console.BufferWidth / 2 - 12; i++)
+            Console.Write("-");
+        Console.Write("\n\n");
+
         foreach (KeyValuePair<Int64, Int64> item in dt)
         {
             Console.Write(item.Key);
@@ -116,8 +128,14 @@ partial class Program
             for (double i = 0; i < item.Value * max; i++)
                 Console.Write("●");
             Console.BackgroundColor = ConsoleColor.Black;
+            Console.Write(" " + item.Value);
             Console.Write("\n");
         }
+
+        Console.Write("\n");
+        for (int i = 0; i < Console.BufferWidth - 2; i++)
+            Console.Write("-");
+
     }
 
     private static double GetMediane()
