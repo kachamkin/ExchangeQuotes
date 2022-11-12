@@ -154,10 +154,9 @@ partial class Program
 
     private static void UpdateTable(Int64 value)
     {
-        ParallelQuery<KeyValuePair<Int64, Int64>> pq = dt.AsParallel().Where(r => r.Key == value);
-        if (pq.Count() != 0)
+        if (dt.ContainsKey(value))
         {
-            dt[pq.First().Key]++;
+            dt[value]++;
         }
         else
         {
@@ -170,7 +169,7 @@ partial class Program
         messagesCount++;
 
         Array.Copy(rawData, halfMessage, halfBufferLength);
-        if (initMessageNumber == -1)
+        if (initMessageNumber == - 1)
             initMessageNumber = BitConverter.ToInt64(halfMessage, 0) - 1;
         lostMessagesCount = BitConverter.ToInt64(halfMessage, 0) - initMessageNumber - messagesCount;
 
