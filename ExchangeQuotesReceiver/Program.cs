@@ -34,9 +34,6 @@ catch
     return;
 }
 
-//dt.Columns.Add("Value", typeof(Int64));
-//dt.Columns.Add("Count", typeof(Int64));
-
 Console.WriteLine("\nPlease use \"Q\" to exit, correctly free network resources and avoid side effects\n");
 
 Task.Run(() => Output());
