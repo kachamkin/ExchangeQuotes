@@ -4,6 +4,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Xml;
 
+Console.OutputEncoding = System.Text.Encoding.UTF8;
+
 if (!GetSettings())
 {
     Console.WriteLine("Failed to read settings!");
@@ -71,11 +73,13 @@ partial class Program
     private static int medianeInterval;
     private static int modeStep;
 
+    private static bool drawChart = false;
+
     private static readonly byte[] halfMessage = new byte[halfBufferLength]; 
 
     private static void Output()
     {
-        ConsoleKey keyPressed = Console.ReadKey().Key;
+        ConsoleKey keyPressed = Console.ReadKey(true).Key;
         if (keyPressed == ConsoleKey.Enter)
         {
             Console.WriteLine("\nTotal messages received: " + messagesCount.ToString("n0"));
@@ -85,6 +89,8 @@ partial class Program
             Console.WriteLine("Mediane:                 " + mediane.ToString("n"));
             Console.WriteLine("Mode:                    " + mode.ToString("n"));
         }
+        else if (keyPressed == ConsoleKey.P)
+            drawChart = true;
         else if (keyPressed == ConsoleKey.Q)
         {
             udpClient?.Close();
@@ -95,6 +101,23 @@ partial class Program
         Output();
     }
 
+    public static void Print()
+    {
+        drawChart = false;
+
+        double max = Console.BufferWidth / (dt.Max(x => x.Value) + 24.0);
+        Console.Write("\n");
+        foreach (KeyValuePair<Int64, Int64> item in dt)
+        {
+            Console.Write(item.Key + " ");
+            Console.BackgroundColor = ConsoleColor.DarkBlue;
+            for (double i = 0; i <= item.Value * max; i++)
+                Console.Write("●");
+            Console.BackgroundColor = ConsoleColor.Black;
+            Console.Write("\n");
+        }
+    }
+
     private static double GetMediane()
     {
         ParallelQuery<KeyValuePair<Int64, Int64>> rows = dt.AsParallel();
@@ -103,8 +126,8 @@ partial class Program
 
         ParallelQuery<KeyValuePair<Int64, Int64>> ordered = rows.AsOrdered();
 
-        Int64 s = 0;
-        KeyValuePair<Int64, Int64> row = ordered.SkipWhile(r => { s += r.Value; return s < sumF / 2; }).First();
+        double s = 0;
+        KeyValuePair<Int64, Int64> row = ordered.SkipWhile(r => { s += r.Value; return s < sumF / 2.0; }).First();
         Int64 fm0 = row.Value;
         Int64 key = row.Key;
 
@@ -179,6 +202,8 @@ partial class Program
             Int64 diff = messagesCount - medianeInterval;
             mediane = (diff * mediane + medianeInterval * GetMediane()) / messagesCount;
             mode = (diff * mode + medianeInterval * GetMode()) / messagesCount;
+            if (drawChart)
+                Print();
             dt.Clear();
         }
     }
