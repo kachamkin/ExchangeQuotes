@@ -155,13 +155,9 @@ partial class Program
     private static void UpdateTable(Int64 value)
     {
         if (dt.ContainsKey(value))
-        {
             dt[value]++;
-        }
         else
-        {
             dt.Add(value, 1);
-        }
     }
 
     private static void UpdateData(byte[] rawData)
