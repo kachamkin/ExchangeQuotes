@@ -4,8 +4,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Xml;
 
-Console.OutputEncoding = System.Text.Encoding.UTF8;
-
 if (!GetSettings())
 {
     Console.WriteLine("Failed to read settings!");
@@ -15,12 +13,6 @@ if (!GetSettings())
 if (medianeInterval <= 0 || modeStep <= 0 )
 {
     Console.WriteLine("Invalid parameters for mediane / mode calculation!");
-    return;
-}
-
-if (delayPeriodicity < 0)
-{
-    Console.WriteLine("Invalid delay parameters!");
     return;
 }
 
@@ -58,8 +50,6 @@ partial class Program
     private static int ttl; 
     private static UdpClient? udpClient;
 
-    private static int delayPeriodicity = 0;
-
     private static readonly SortedDictionary<Int64, Int64> dt = new();
 
     private static Int64 messagesCount = 0; 
@@ -90,7 +80,7 @@ partial class Program
             Console.WriteLine("Mediane:                 " + mediane.ToString("n"));
             Console.WriteLine("Mode:                    " + mode.ToString("n"));
             Console.Write("\n");
-            for (int i = 0; i < Console.BufferWidth - 2; i++)
+            for (int i = 0; i < Console.BufferWidth - 11; i++)
                 Console.Write("*");
         }
         else if (keyPressed == ConsoleKey.P)
@@ -112,11 +102,9 @@ partial class Program
         double max = Console.BufferWidth / (dt.Max(x => x.Value) + 64.0);
 
         Console.Write("\n");
-        for (int i = 0; i < Console.BufferWidth / 2 - 12; i++)
-            Console.Write("*");
-        Console.Write("Packets " + (messagesCount - medianeInterval) + " - " + messagesCount);
-        for (int i = 0; i < Console.BufferWidth / 2 - 12; i++)
-            Console.Write("*");
+        for (int i = 0; i < Console.BufferWidth / 2 - 16; i++)
+            Console.Write(" ");
+        Console.Write("Packets " + (messagesCount - medianeInterval).ToString("n0") + " - " + messagesCount.ToString("n0"));
         Console.Write("\n\n");
 
         foreach (KeyValuePair<Int64, Int64> item in dt)
@@ -124,16 +112,16 @@ partial class Program
             Console.Write(item.Key);
             for (int i = 0; i < 8 - item.Key.ToString().Length; i++)
                 Console.Write(" ");
-            Console.BackgroundColor = ConsoleColor.DarkGray;
+            Console.BackgroundColor = ConsoleColor.Gray;
             for (double i = 0; i < item.Value * max; i++)
-                Console.Write("●");
+                Console.Write(" ");
             Console.BackgroundColor = ConsoleColor.Black;
             Console.Write(" " + item.Value);
             Console.Write("\n");
         }
 
         Console.Write("\n");
-        for (int i = 0; i < Console.BufferWidth - 2; i++)
+        for (int i = 0; i < Console.BufferWidth - 11; i++)
             Console.Write("*");
 
     }
@@ -233,7 +221,6 @@ partial class Program
             groupAddress = IPAddress.Parse(element.SelectSingleNode("GroupAddress").InnerText);
             port = int.Parse(element.SelectSingleNode("Port").InnerText);
             ttl = int.Parse(element.SelectSingleNode("TTL").InnerText);
-            delayPeriodicity = int.Parse(element.SelectSingleNode("DelayPeriodicity").InnerText);
             medianeInterval = int.Parse(element.SelectSingleNode("MedianeInterval").InnerText);
             modeStep = int.Parse(element.SelectSingleNode("ModeStep").InnerText);
 
