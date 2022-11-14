@@ -278,11 +278,11 @@ namespace Chart
 
         private void UpdateChart()
         {
-            if (!chart.Series.Any())
-                chart.Series.Add(new Series());
-            chart.Series[0].Points.Clear();
+            chart.Series.Clear();
+            Series series = new();
             foreach (KeyValuePair<Int64, Int64> item in dt)
-                chart.Series[0].Points.Add(new DataPoint(item.Key, item.Value));
+                series.Points.Add(new DataPoint(item.Key, item.Value));
+            chart.Series.Add(series);
         }
 
         private void StopButton_Click(object sender, EventArgs e)
