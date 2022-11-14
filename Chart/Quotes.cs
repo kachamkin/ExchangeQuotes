@@ -166,14 +166,8 @@ namespace Chart
         {
             if (!string.IsNullOrWhiteSpace(GroupAddressBox.Text))
             {
-                try
-                {
-                    groupAddress = IPAddress.Parse(GroupAddressBox.Text);
-                }
-                catch
-                {
-                    GroupAddressBox.Text = groupAddress?.ToString();
-                }
+                if (!IPAddress.TryParse(GroupAddressBox.Text, out groupAddress))
+                     GroupAddressBox.Text = groupAddress?.ToString();
             }
             else
                 groupAddress = IPAddress.Any;
@@ -183,14 +177,8 @@ namespace Chart
         {
             if (!string.IsNullOrWhiteSpace(PortBox.Text))
             {
-                try
-                {
-                    port = int.Parse(PortBox.Text);
-                }
-                catch
-                {
+                if (!int.TryParse(PortBox.Text, out port))
                     PortBox.Text = port.ToString();
-                }
             }
             else
                 port = 0;
@@ -200,14 +188,8 @@ namespace Chart
         {
             if (!string.IsNullOrWhiteSpace(TtlBox.Text))
             {
-                try
-                {
-                    ttl = int.Parse(TtlBox.Text);
-                }
-                catch
-                {
+                if (!int.TryParse(TtlBox.Text, out ttl))
                     TtlBox.Text = ttl.ToString();
-                }
             }
             else
                 ttl = 0;
@@ -217,14 +199,8 @@ namespace Chart
         {
             if (!string.IsNullOrWhiteSpace(MedianeIntervalBox.Text))
             {
-                try
-                {
-                    medianeInterval = int.Parse(MedianeIntervalBox.Text);
-                }
-                catch
-                {
+                if (!int.TryParse(MedianeIntervalBox.Text, out medianeInterval))
                     MedianeIntervalBox.Text = medianeInterval.ToString();
-                }
             }
             else
                 medianeInterval = 0;
@@ -234,14 +210,8 @@ namespace Chart
         {
             if (!string.IsNullOrWhiteSpace(ModeStepBox.Text))
             {
-                try
-                {
-                    modeStep = int.Parse(ModeStepBox.Text);
-                }
-                catch
-                {
+                if (!int.TryParse(ModeStepBox.Text, out modeStep))
                     ModeStepBox.Text = modeStep.ToString();
-                }
             }
             else
                 modeStep = 0;
