@@ -46,6 +46,7 @@
             this.GroupAddressBox.PlaceholderText = "Group address";
             this.GroupAddressBox.Size = new System.Drawing.Size(263, 23);
             this.GroupAddressBox.TabIndex = 0;
+            this.GroupAddressBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.GroupAddressBox_KeyDown);
             this.GroupAddressBox.Leave += new System.EventHandler(this.GroupAddressBox_Leave);
             // 
             // PortBox
@@ -56,6 +57,7 @@
             this.PortBox.PlaceholderText = "Port";
             this.PortBox.Size = new System.Drawing.Size(263, 23);
             this.PortBox.TabIndex = 1;
+            this.PortBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.PortBox_KeyDown);
             this.PortBox.Leave += new System.EventHandler(this.PortBox_Leave);
             // 
             // TtlBox
@@ -66,6 +68,7 @@
             this.TtlBox.PlaceholderText = "TTL";
             this.TtlBox.Size = new System.Drawing.Size(263, 23);
             this.TtlBox.TabIndex = 2;
+            this.TtlBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TtlBox_KeyDown);
             this.TtlBox.Leave += new System.EventHandler(this.TtlBox_Leave);
             // 
             // MedianeIntervalBox
@@ -76,6 +79,7 @@
             this.MedianeIntervalBox.PlaceholderText = "Mediane interval";
             this.MedianeIntervalBox.Size = new System.Drawing.Size(263, 23);
             this.MedianeIntervalBox.TabIndex = 3;
+            this.MedianeIntervalBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.MedianeIntervalBox_KeyDown);
             this.MedianeIntervalBox.Leave += new System.EventHandler(this.MedianeIntervalBox_Leave);
             // 
             // ModeStepBox
@@ -86,6 +90,7 @@
             this.ModeStepBox.PlaceholderText = "Mode step";
             this.ModeStepBox.Size = new System.Drawing.Size(263, 23);
             this.ModeStepBox.TabIndex = 4;
+            this.ModeStepBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.ModeStepBox_KeyDown);
             this.ModeStepBox.Leave += new System.EventHandler(this.ModeStepBox_Leave);
             // 
             // StartButton
@@ -103,6 +108,7 @@
             // StopButton
             // 
             this.StopButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.StopButton.Enabled = false;
             this.StopButton.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.StopButton.Location = new System.Drawing.Point(525, 186);
             this.StopButton.Name = "StopButton";
@@ -116,6 +122,7 @@
             // 
             this.Result.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.Result.Enabled = false;
             this.Result.Font = new System.Drawing.Font("Courier New", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.Result.Location = new System.Drawing.Point(525, 215);
             this.Result.Multiline = true;

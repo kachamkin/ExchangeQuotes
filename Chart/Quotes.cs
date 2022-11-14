@@ -1,8 +1,9 @@
-using System.Net.Sockets;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Net;
+using System.Net.Sockets;
 using System.Windows.Forms.DataVisualization.Charting;
 using Charting = System.Windows.Forms.DataVisualization.Charting;
-using System.ComponentModel.DataAnnotations;
 
 namespace Chart
 {
@@ -11,14 +12,15 @@ namespace Chart
         private const int halfBufferLength = 8;
         private const int receiveBufferSize = 10485760;
 
-        [Required, Range(1, 65535)]
         private int port;
+        [Required, Range(1, 65535), Display(Name = "Port")]
         public int _port { get { return port; } set { port = value; } }
-        [Required]
         private IPAddress groupAddress;
+        [Required, Display(Name = "Group address")]
+        public IPAddress _groupAddress { get { return groupAddress; } set { groupAddress = value; } }
 
-        [Range(0, 100)]
         private int ttl;
+        [Range(0, 100), Display(Name = "TTL")]
         public int _ttl { get { return ttl; } set { ttl = value; } }
 
         private UdpClient? udpClient;
@@ -34,17 +36,18 @@ namespace Chart
         private double mode;
         private Int64 initMessageNumber = -1;
 
-        [Required, Range(5, 1000000)]
         private int medianeInterval;
+        [Required, Range(5, 1000000), Display(Name = "Mediane interval")]
         public int _medianeInterval { get { return medianeInterval; } set { medianeInterval = value; } }
-        [Required, Range(5, 1000000)]
         private int modeStep;
+        [Required, Range(5, 1000000), Display(Name = "Mode step")]
         public int _modeStep { get { return modeStep; } set { modeStep = value; } }
 
         bool stopListen = false;
         private static readonly byte[] halfMessage = new byte[halfBufferLength];
 
         public Charting.Chart chart = new();
+
         public Quotes()
         {
             InitializeComponent();
@@ -52,7 +55,6 @@ namespace Chart
             CheckForIllegalCrossThreadCalls = false;
 
             groupAddress = IPAddress.Parse("224.116.88.9");
-            GroupAddressBox.Text = "224.116.88.9";
             port = 5055;
             ttl = 50;
             medianeInterval = 1000;
@@ -62,12 +64,12 @@ namespace Chart
             TtlBox.DataBindings.Add("Text", this, "_ttl");
             MedianeIntervalBox.DataBindings.Add("Text", this, "_medianeInterval");
             ModeStepBox.DataBindings.Add("Text", this, "_modeStep");
+            GroupAddressBox.DataBindings.Add("Text", this, "_groupAddress");
 
             chart.ChartAreas.Add(new ChartArea());
             chart.Location = new System.Drawing.Point(10, 10);
             chart.Size = new System.Drawing.Size(500, 400);
             chart.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom;
-
             Controls.Add(chart);
         }
 
@@ -173,6 +175,8 @@ namespace Chart
                     GroupAddressBox.Text = groupAddress?.ToString();
                 }
             }
+            else
+                groupAddress = IPAddress.Any;
         }
 
         private void PortBox_Leave(object sender, EventArgs e)
@@ -188,6 +192,8 @@ namespace Chart
                     PortBox.Text = port.ToString();
                 }
             }
+            else
+                port = 0;
         }
 
         private void TtlBox_Leave(object sender, EventArgs e)
@@ -203,6 +209,8 @@ namespace Chart
                     TtlBox.Text = ttl.ToString();
                 }
             }
+            else
+                ttl = 0;
         }
 
         private void MedianeIntervalBox_Leave(object sender, EventArgs e)
@@ -218,6 +226,8 @@ namespace Chart
                     MedianeIntervalBox.Text = medianeInterval.ToString();
                 }
             }
+            else
+                medianeInterval = 0;
         }
 
         private void ModeStepBox_Leave(object sender, EventArgs e)
@@ -233,24 +243,43 @@ namespace Chart
                     ModeStepBox.Text = modeStep.ToString();
                 }
             }
+            else
+                modeStep = 0;
+        }
+
+        private bool CheckAll()
+        {
+            string valResult = "";
+            List<ValidationResult> results = new();
+            if (!Validator.TryValidateObject(this, new ValidationContext(this), results, true))
+            {
+                foreach (ValidationResult res in results)
+                    valResult += res.ErrorMessage + "\r\n";
+                MessageBox.Show(valResult, "Quotes", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            return true;    
         }
 
         private async void StartButton_Click(object sender, EventArgs e)
         {
-            if (!Validate())
+            if (!CheckAll())
                 return;
-
+            
             try
             {
-                udpClient = new(port);
+                udpClient = new(port); 
                 udpClient.Client.ReceiveBufferSize = receiveBufferSize;
                 udpClient.JoinMulticastGroup(groupAddress, ttl);
             }
-            catch
+            catch (Exception ex)
             {
-                MessageBox.Show("Invalid port or IP parameters!", "Quotes", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Quotes", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+            StartButton.Enabled = false;
+            StopButton.Enabled = true;
 
             while (true)
             {
@@ -288,9 +317,42 @@ namespace Chart
 
         private void StopButton_Click(object sender, EventArgs e)
         {
+            StartButton.Enabled = true;
+            StopButton.Enabled = false;
+
             stopListen = true;
             udpClient?.Close();
             udpClient?.Dispose();
+        }
+
+        private void GroupAddressBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+                PortBox.Focus();    
+        }
+
+        private void PortBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+                TtlBox.Focus();
+        }
+
+        private void TtlBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+                MedianeIntervalBox.Focus();
+        }
+
+        private void MedianeIntervalBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+                ModeStepBox.Focus();
+        }
+
+        private void ModeStepBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+                chart.Focus();
         }
     }
 }
