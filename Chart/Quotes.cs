@@ -1,8 +1,6 @@
 using Microsoft.Win32;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
-using System.Net.Sockets;
 using System.Windows.Forms.DataVisualization.Charting;
 using Charting = System.Windows.Forms.DataVisualization.Charting;
 
