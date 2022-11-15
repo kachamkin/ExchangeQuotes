@@ -184,8 +184,8 @@ namespace Chart
 
         private void OnIntervalElapsed(Dictionary<Int64, Int64> dt, StatData data)
         {
-            UpdateText(data);
-            UpdateChart(dt);
+            Task.Run(() => UpdateText(data));
+            Task.Run(() => UpdateChart(dt));
         }
 
         private void UpdateText(StatData data)
