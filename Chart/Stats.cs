@@ -50,7 +50,7 @@ namespace Chart
         bool stopListen = false;
         private static readonly byte[] halfMessage = new byte[halfBufferLength];
 
-        public delegate void IntervalElapsed(KeyValuePair<Int64, Int64>[] pairs, StatData data);
+        public delegate void IntervalElapsed(List<KeyValuePair<Int64, Int64>> pairs, StatData data);
         public event IntervalElapsed? OnIntervalElapsed;
 
         public Stats(IPAddress _groupAddress, int _port, int _ttl, int _medianeInterval, int _modeStep)
@@ -145,8 +145,8 @@ namespace Chart
 
         private void RaiseEvent()
         {
-            KeyValuePair<Int64, Int64>[] pairs = new KeyValuePair<Int64, Int64>[dt.Count];
-            dt.CopyTo(pairs, 0);
+            List<KeyValuePair<Int64, Int64>> pairs = new(dt.Count);
+            dt.AsParallel().ForAll(item => pairs.Add(item));
             StatData data = new() { average = this.average, deviationSum = this.deviationSum, lostMessagesCount = this.lostMessagesCount, mediane = this.mediane, messagesCount = this.messagesCount, mode = this.mode  };
             OnIntervalElapsed?.Invoke(pairs, data);
         }

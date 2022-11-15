@@ -182,7 +182,7 @@ namespace Chart
             stats.Start();
         }
 
-        private void OnIntervalElapsed(KeyValuePair<Int64, Int64>[] dt, StatData data)
+        private void OnIntervalElapsed(List<KeyValuePair<Int64, Int64>> dt, StatData data)
         {
             UpdateText(data);
             UpdateChart(dt);
@@ -198,7 +198,7 @@ namespace Chart
                       "\r\n  Mode:                    " + data.mode.ToString("n");
         }
 
-        private void UpdateChart(KeyValuePair<Int64, Int64>[] dt)
+        private void UpdateChart(List<KeyValuePair<Int64, Int64>> dt)
         {
             chart.Series.Clear();
             Series series = new();
