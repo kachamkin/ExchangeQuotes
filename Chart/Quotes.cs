@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
@@ -46,7 +47,7 @@ namespace Chart
         bool stopListen = false;
         private static readonly byte[] halfMessage = new byte[halfBufferLength];
 
-        public Charting.Chart chart = new();
+        private Charting.Chart chart = new();
 
         public Quotes()
         {
@@ -54,11 +55,8 @@ namespace Chart
 
             CheckForIllegalCrossThreadCalls = false;
 
-            groupAddress = IPAddress.Parse("224.116.88.9");
-            port = 5055;
-            ttl = 50;
-            medianeInterval = 1000;
-            modeStep = 20;
+            groupAddress = IPAddress.Any;
+            ReadFromRegistry();
 
             PortBox.DataBindings.Add("Text", this, "_port");
             TtlBox.DataBindings.Add("Text", this, "_ttl");
@@ -114,6 +112,40 @@ namespace Chart
             return 0;
         }
 
+        private void ReadFromRegistry()
+        {
+            using RegistryKey? key = Registry.CurrentUser.OpenSubKey("Software\\ExchangeQuotes");
+            if (key != null)
+            {
+                try
+                {
+                    groupAddress = IPAddress.Parse((string)key.GetValue("GroupAddress"));
+                    port = int.Parse((string)key.GetValue("Port"));
+                    ttl = int.Parse((string)key.GetValue("TTL"));
+                    medianeInterval = int.Parse((string)key.GetValue("MedianeInterval"));
+                    modeStep = int.Parse((string)key.GetValue("ModeStep"));
+                }
+                catch { }
+            }
+        }
+
+        private void WriteToRegistry()
+        {
+            RegistryKey? key = Registry.CurrentUser.OpenSubKey("Software\\ExchangeQuotes", true);
+            try
+            {
+                if (key == null)
+                    key = Registry.CurrentUser.CreateSubKey("Software\\ExchangeQuotes");
+                key.SetValue("GroupAddress", groupAddress.ToString());
+                key.SetValue("Port", port.ToString());
+                key.SetValue("TTL", ttl.ToString());
+                key.SetValue("MedianeInterval", medianeInterval.ToString());
+                key.SetValue("ModeStep", modeStep.ToString());
+                key.Dispose();
+            }
+            catch { }
+        }
+
         private void UpdateTable(Int64 value)
         {
             if (dt.ContainsKey(value))
@@ -160,6 +192,8 @@ namespace Chart
             stopListen = true;
             udpClient?.Close();
             udpClient?.Dispose();
+
+            WriteToRegistry();
         }
 
         private void GroupAddressBox_Leave(object sender, EventArgs e)
