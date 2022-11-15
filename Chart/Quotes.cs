@@ -10,12 +10,10 @@ namespace Chart
 {
     public partial class Quotes : Form
     {
-        private const int halfBufferLength = 8;
-        private const int receiveBufferSize = 10485760;
-
         private int port;
         [Required, Range(1, 65535), Display(Name = "Port")]
         public int _port { get { return port; } set { port = value; } }
+
         private IPAddress groupAddress;
         [Required, Display(Name = "Group address")]
         public IPAddress _groupAddress { get { return groupAddress; } set { groupAddress = value; } }
@@ -24,30 +22,17 @@ namespace Chart
         [Range(0, 100), Display(Name = "TTL")]
         public int _ttl { get { return ttl; } set { ttl = value; } }
 
-        private UdpClient? udpClient;
-
-        private readonly SortedDictionary<Int64, Int64> dt = new();
-
-        private Int64 messagesCount = 0;
-        private Int64 lostMessagesCount = 0;
-        private Int64 sum = 0;
-        private double average = 0;
-        private double deviationSum = 0;
-        private double mediane = 0;
-        private double mode;
-        private Int64 initMessageNumber = -1;
-
         private int medianeInterval;
         [Required, Range(5, 1000000), Display(Name = "Mediane interval")]
         public int _medianeInterval { get { return medianeInterval; } set { medianeInterval = value; } }
+
         private int modeStep;
         [Required, Range(5, 1000000), Display(Name = "Mode step")]
         public int _modeStep { get { return modeStep; } set { modeStep = value; } }
 
-        bool stopListen = false;
-        private static readonly byte[] halfMessage = new byte[halfBufferLength];
-
         private Charting.Chart chart = new();
+
+        private Stats? stats;
 
         public Quotes()
         {
@@ -69,47 +54,6 @@ namespace Chart
             chart.Size = new System.Drawing.Size(500, 400);
             chart.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom;
             Controls.Add(chart);
-        }
-
-        private double GetMediane()
-        {
-            ParallelQuery<KeyValuePair<Int64, Int64>> rows = dt.AsParallel();
-            Int64 sumF = rows.Sum(r => r.Value);
-
-            Int64 s = 0;
-            KeyValuePair<Int64, Int64> row = dt.SkipWhile(r => { s += r.Value; return s < sumF / 2; }).First();
-
-            Int64 fm0_1 = 0;
-            ParallelQuery<KeyValuePair<Int64, Int64>> pq = rows.AsOrdered().Where(r => r.Key < row.Key);
-            if (pq.Any())
-                fm0_1 = pq.Last().Value;
-
-            return row.Key - 0.5 * modeStep + modeStep * (0.5 * sumF - fm0_1) / row.Value;
-        }
-
-        private double GetMode()
-        {
-            ParallelQuery<KeyValuePair<Int64, Int64>> rows = dt.AsParallel();
-            Int64 maxValueCount = rows.Max(r => r.Value);
-
-            if (maxValueCount > 1)
-            {
-                KeyValuePair<Int64, Int64> row = rows.Where(r => r.Value == maxValueCount).First();
-                ParallelQuery<KeyValuePair<Int64, Int64>> ordered = rows.AsOrdered();
-
-                Int64 fm0_1 = 0;
-                ParallelQuery<KeyValuePair<Int64, Int64>> pq = ordered.Where(r => r.Key < row.Key);
-                if (pq.Any())
-                    fm0_1 = pq.Last().Value;
-
-                Int64 fm01 = 0;
-                pq = ordered.Where(r => r.Key > row.Key);
-                if (pq.Any())
-                    fm01 = pq.First().Value;
-
-                return row.Key - 0.5 * modeStep + modeStep * (row.Value - fm0_1) / (2.0 * row.Value - fm0_1 - fm01);
-            }
-            return 0;
         }
 
         private void ReadFromRegistry()
@@ -134,66 +78,23 @@ namespace Chart
             RegistryKey? key = Registry.CurrentUser.OpenSubKey("Software\\ExchangeQuotes", true);
             try
             {
-                if (key == null)
-                    key = Registry.CurrentUser.CreateSubKey("Software\\ExchangeQuotes");
+                key ??= Registry.CurrentUser.CreateSubKey("Software\\ExchangeQuotes");
+
                 key.SetValue("GroupAddress", groupAddress.ToString());
                 key.SetValue("Port", port.ToString());
                 key.SetValue("TTL", ttl.ToString());
                 key.SetValue("MedianeInterval", medianeInterval.ToString());
                 key.SetValue("ModeStep", modeStep.ToString());
+
                 key.Dispose();
             }
             catch { }
         }
 
-        private void UpdateTable(Int64 value)
-        {
-            if (dt.ContainsKey(value))
-                dt[value]++;
-            else
-                dt.Add(value, 1);
-        }
-
-        private void UpdateData(byte[] rawData)
-        {
-            messagesCount++;
-
-            Array.Copy(rawData, halfMessage, halfBufferLength);
-
-            Int64 num = BitConverter.ToInt64(halfMessage, 0);
-            if (initMessageNumber == -1)
-                initMessageNumber = num - 1;
-            lostMessagesCount = num - initMessageNumber - messagesCount;
-
-            Array.Copy(rawData, halfBufferLength, halfMessage, 0, halfBufferLength);
-            Int64 value = BitConverter.ToInt64(halfMessage, 0);
-
-            sum += value;
-            average = (double)sum / messagesCount;
-
-            double deviation = (double)value - average;
-            deviationSum += deviation * deviation;
-
-            UpdateTable(((value % modeStep >= modeStep / 2 ? value + modeStep : value) / modeStep) * modeStep);
-
-            if (messagesCount >= medianeInterval && messagesCount % medianeInterval == 0)
-            {
-                Int64 diff = messagesCount - medianeInterval;
-                mediane = (diff * mediane + medianeInterval * GetMediane()) / messagesCount;
-                mode = (diff * mode + medianeInterval * GetMode()) / messagesCount;
-                UpdateChart();
-                dt.Clear();
-                Task.Run(() => UpdateText());
-            }
-        }
-
         private void Quotes_FormClosing(object sender, FormClosingEventArgs e)
         {
-            stopListen = true;
-            udpClient?.Close();
-            udpClient?.Dispose();
-
-            WriteToRegistry();
+           stats?.Stop();
+           WriteToRegistry();
         }
 
         private void GroupAddressBox_Leave(object sender, EventArgs e)
@@ -265,52 +166,39 @@ namespace Chart
             return true;    
         }
 
-        private async void StartButton_Click(object sender, EventArgs e)
+        private void StartButton_Click(object sender, EventArgs e)
         {
             if (!CheckAll())
                 return;
-            
-            try
-            {
-                udpClient = new(port); 
-                udpClient.Client.ReceiveBufferSize = receiveBufferSize;
-                udpClient.JoinMulticastGroup(groupAddress, ttl);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Quotes", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
 
             StartButton.Enabled = false;
             StopButton.Enabled = true;
 
-            while (true)
-            {
-                if (stopListen)
-                {
-                    stopListen = false;
-                    break;
-                }
-                try
-                {
-                    await Task.Run(async () => UpdateData((await udpClient.ReceiveAsync()).Buffer));
-                }
-                catch { };
-            }
+            bool firstTime = stats == null;
+
+            stats ??= new(groupAddress, port, ttl, medianeInterval, modeStep);
+            if (firstTime)
+                stats.OnIntervalElapsed += OnIntervalElapsed;
+            stats.Start();
         }
 
-        private void UpdateText()
+        private void OnIntervalElapsed(KeyValuePair<Int64, Int64>[] dt, StatData data)
         {
-            Result.Text = "\r\n  Total messages received: " + messagesCount.ToString("n0") +
-                      "\r\n  Total messages \"lost\":   " + lostMessagesCount.ToString("n0") +
-                      "\r\n  Average:                 " + average.ToString("n") +
-                      "\r\n  Standard deviation:      " + Math.Sqrt(deviationSum / (messagesCount + 1)).ToString("n") +
-                      "\r\n  Mediane:                 " + mediane.ToString("n") +
-                      "\r\n  Mode:                    " + mode.ToString("n");
+            UpdateText(data);
+            UpdateChart(dt);
         }
 
-        private void UpdateChart()
+        private void UpdateText(StatData data)
+        {
+            Result.Text = "\r\n  Total messages received: " + data.messagesCount.ToString("n0") +
+                      "\r\n  Total messages \"lost\":   " + data.lostMessagesCount.ToString("n0") +
+                      "\r\n  Average:                 " + data.average.ToString("n") +
+                      "\r\n  Standard deviation:      " + Math.Sqrt(data.deviationSum / (data.messagesCount + 1)).ToString("n") +
+                      "\r\n  Mediane:                 " + data.mediane.ToString("n") +
+                      "\r\n  Mode:                    " + data.mode.ToString("n");
+        }
+
+        private void UpdateChart(KeyValuePair<Int64, Int64>[] dt)
         {
             chart.Series.Clear();
             Series series = new();
@@ -324,9 +212,7 @@ namespace Chart
             StartButton.Enabled = true;
             StopButton.Enabled = false;
 
-            stopListen = true;
-            udpClient?.Close();
-            udpClient?.Dispose();
+            stats?.Stop();
         }
 
         private void GroupAddressBox_KeyDown(object sender, KeyEventArgs e)
