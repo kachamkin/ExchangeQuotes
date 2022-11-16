@@ -18,10 +18,9 @@ namespace Chart
         private const int halfBufferLength = 8;
         private const int receiveBufferSize = 10485760;
 
-        private readonly int port;
-        private readonly IPAddress groupAddress;
-
-        private readonly int ttl;
+        private int port;
+        private IPAddress groupAddress;
+        private int ttl;
 
         private UdpClient? udpClient;
 
@@ -36,8 +35,8 @@ namespace Chart
         private double mode;
         private Int64 initMessageNumber = -1;
 
-        private readonly int medianeInterval;
-        private readonly int modeStep;
+        private int medianeInterval;
+        private int modeStep;
 
         bool stopListen = false;
         private static readonly byte[] halfMessage = new byte[halfBufferLength];
@@ -46,6 +45,15 @@ namespace Chart
         public event IntervalElapsed? OnIntervalElapsed;
 
         public Stats(IPAddress _groupAddress, int _port, int _ttl, int _medianeInterval, int _modeStep)
+        {
+            groupAddress = _groupAddress;
+            port = _port;
+            ttl = _ttl;
+            medianeInterval = _medianeInterval;
+            modeStep = _modeStep;
+        }
+
+        public void SetParams(IPAddress _groupAddress, int _port, int _ttl, int _medianeInterval, int _modeStep)
         {
             groupAddress = _groupAddress;
             port = _port;

@@ -174,10 +174,13 @@ namespace Chart
 
             bool firstTime = stats == null;
 
-            stats ??= new(groupAddress, port, ttl, medianeInterval, modeStep);
             if (firstTime)
+            {
+                stats = new(groupAddress, port, ttl, medianeInterval, modeStep);
                 stats.OnIntervalElapsed += OnIntervalElapsed;
-            stats.Start();
+            }
+            stats?.SetParams(groupAddress, port, ttl, medianeInterval, modeStep);
+            stats?.Start();
         }
 
         private void OnIntervalElapsed(Dictionary<Int64, Int64> dt, StatData data)
