@@ -18,7 +18,7 @@ double mediane = 0;
 double mode = 0;
 
 #if defined WIN32
-extern void Listen();
+void Listen();
 #endif
 
 bool ReadXML(string path)
