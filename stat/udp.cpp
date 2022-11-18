@@ -1,8 +1,3 @@
-#if defined WIN32
-#include <WinSock2.h>
-#include <WS2tcpip.h>
-#endif
-
 #include "header.h"
 
 extern int port;
@@ -27,8 +22,8 @@ void udp_server::start_receive()
 	socket_.async_receive_from(
 		boost::asio::buffer(recv_buffer_), remote_endpoint_,
 		boost::bind(&udp_server::handle_receive, this,
-			boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred));
+			placeholders::error,
+			placeholders::bytes_transferred));
 }
 
 void udp_server::handle_receive(const boost::system::error_code& error,
@@ -64,6 +59,7 @@ void Listen()
 
 	if (::bind(listen_socket, (struct sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR)
 	{
+		closesocket(listen_socket);
 		WSACleanup();
 		return;
 	}
@@ -71,6 +67,7 @@ void Listen()
 	ULONG* addrBuff = (ULONG*)malloc(8);
 	if (!addrBuff)
 	{
+		closesocket(listen_socket);
 		WSACleanup();
 		return;
 	}
@@ -83,6 +80,7 @@ void Listen()
 
 	if (setsockopt(listen_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0)
 	{
+		closesocket(listen_socket);
 		WSACleanup();
 		return;
 	}
@@ -90,6 +88,7 @@ void Listen()
 	int size = SOCKET_BUFFER_SIZE;
 	if (setsockopt(listen_socket, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size)) < 0)
 	{
+		closesocket(listen_socket);
 		WSACleanup();
 		return;
 	}
@@ -104,9 +103,6 @@ void Listen()
 		if (bytesRead > 0)
 			UpdateData(&arBuf);
 	};
-	
-	closesocket(listen_socket);
-	WSACleanup();
 }
 
 #endif

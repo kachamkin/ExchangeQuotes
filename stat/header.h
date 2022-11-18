@@ -1,17 +1,27 @@
 #pragma once
 
+#include <iostream>
+#include <fstream> 
+#include <map>
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/foreach.hpp>
+#include <filesystem>
 #include <boost/array.hpp>
 
 #ifndef WIN32
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
+#else
+#include <WinSock2.h>
+#include <WS2tcpip.h>
 #endif
 
 #define BUFFER_LENGTH 16
 #define SOCKET_BUFFER_SIZE 10485760
 
 using namespace std;
+using namespace boost::placeholders;
 
 #ifndef WIN32
 

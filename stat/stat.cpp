@@ -1,9 +1,4 @@
-﻿#include <iostream>
-#include <fstream> 
-#include <boost/property_tree/xml_parser.hpp>
-#include <boost/foreach.hpp>
-#include <filesystem>
-#include "header.h"
+﻿#include "header.h"
 
 int port;
 string groupAddress;
@@ -55,26 +50,28 @@ bool ReadXML(string path)
 
 void Output()
 {
-	int c = getchar();
-	if (c == '\n')
+	while (true)
 	{
-		cout << "\nTotal messages received: ";
-		cout << messagesCount << endl;
-		cout << "Total messages \"lost\":   ";
-		cout << lostMessagesCount << endl;
-		cout << "Average:                 ";
-		cout << average << endl;
-		cout << "Standard deviation:      ";
-		cout << sqrt(deviationSum / (messagesCount + 1)) << endl;
-		cout << "Mediane:                 ";
-		cout << mediane << endl;
-		cout << "Mode:                    ";
-		cout << mode << endl;
-		cout << endl;
-		for (int i = 0; i < 60; i++)
-			cout << '*';
+		int c = getchar();
+		if (c == '\n')
+		{
+			cout << "\nTotal messages received: ";
+			cout << messagesCount << endl;
+			cout << "Total messages \"lost\":   ";
+			cout << lostMessagesCount << endl;
+			cout << "Average:                 ";
+			cout << average << endl;
+			cout << "Standard deviation:      ";
+			cout << sqrt(deviationSum / (messagesCount + 1)) << endl;
+			cout << "Mediane:                 ";
+			cout << mediane << endl;
+			cout << "Mode:                    ";
+			cout << mode << endl;
+			cout << endl;
+			for (int i = 0; i < 60; i++)
+				cout << '*';
+		}
 	}
-	Output();
 }
 
 int main(int argc, char* argv[])

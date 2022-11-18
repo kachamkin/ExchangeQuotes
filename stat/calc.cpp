@@ -1,4 +1,3 @@
-#include <map>
 #include "header.h"
 
 extern int medianeInterval;
