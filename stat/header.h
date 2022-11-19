@@ -4,11 +4,10 @@
 #include <fstream> 
 #include <map>
 #include <boost/property_tree/xml_parser.hpp>
-#include <boost/foreach.hpp>
 #include <filesystem>
-#include <boost/array.hpp>
 
 #ifndef WIN32
+#include <boost/array.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>

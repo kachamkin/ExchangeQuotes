@@ -5,7 +5,7 @@ extern string groupAddress;
 extern int medianeInterval;
 extern int modeStep;
 
-void UpdateData(boost::array<char, BUFFER_LENGTH>* data);
+void UpdateData(char* pData);
 
 #ifndef WIN32
 
@@ -31,7 +31,7 @@ void udp_server::handle_receive(const boost::system::error_code& error,
 {
 	if (!error || error == boost::asio::error::message_size)
 	{
-		UpdateData(&recv_buffer_);
+		UpdateData(&recv_buffer_.data());
 		start_receive();
 	}
 }
@@ -40,11 +40,6 @@ void udp_server::handle_receive(const boost::system::error_code& error,
 
 void Listen()
 {
-	WSADATA wsaData;
-
-	if (WSAStartup(MAKEWORD(2, 2), &wsaData))
-		return;
-
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
@@ -52,15 +47,12 @@ void Listen()
 	addr.sin_port = htons(port);
 
 	SOCKET listen_socket = socket(AF_INET, SOCK_DGRAM, 0);
-	if (listen_socket == INVALID_SOCKET) {
-		WSACleanup();
+	if (listen_socket == INVALID_SOCKET) 
 		return;
-	}
 
-	if (::bind(listen_socket, (struct sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR)
+	if (::bind(listen_socket, (struct sockaddr*)&addr, sizeof(addr)) <  0)
 	{
 		closesocket(listen_socket);
-		WSACleanup();
 		return;
 	}
 
@@ -68,7 +60,6 @@ void Listen()
 	if (!addrBuff)
 	{
 		closesocket(listen_socket);
-		WSACleanup();
 		return;
 	}
 
@@ -81,7 +72,6 @@ void Listen()
 	if (setsockopt(listen_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mreq, sizeof(mreq)) < 0)
 	{
 		closesocket(listen_socket);
-		WSACleanup();
 		return;
 	}
 
@@ -89,19 +79,18 @@ void Listen()
 	if (setsockopt(listen_socket, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size)) < 0)
 	{
 		closesocket(listen_socket);
-		WSACleanup();
 		return;
 	}
 
 	int bytesRead = 0;
-	boost::array<char, BUFFER_LENGTH> arBuf{};
+	char buff[BUFFER_LENGTH]{};
 
 	int addrlen = sizeof(addr);
 	while (true)
 	{
-		bytesRead = recvfrom(listen_socket, arBuf.data(), BUFFER_LENGTH, 0, (struct sockaddr*)&addr, &addrlen);
+		bytesRead = recvfrom(listen_socket, buff, BUFFER_LENGTH, 0, (struct sockaddr*)&addr, &addrlen);
 		if (bytesRead > 0)
-			UpdateData(&arBuf);
+			UpdateData(buff);
 	};
 }
 

@@ -13,6 +13,9 @@ double mediane = 0;
 double mode = 0;
 
 #if defined WIN32
+bool drawChart = false;
+extern map<int64_t, int64_t> dt;
+extern int64_t maxVal;
 void Listen();
 #endif
 
@@ -26,7 +29,7 @@ bool ReadXML(string path)
 		boost::property_tree::read_xml(settings, propertyTree);
 		settings.close();
 
-		BOOST_FOREACH(auto & v, propertyTree.get_child("settings"))
+		for (const auto& v : propertyTree.get_child("settings"))
 		{
 			string first = v.first;
 			string second = v.second.data();
@@ -47,6 +50,60 @@ bool ReadXML(string path)
 		return false;
 	}
 }
+
+#if defined WIN32
+
+int GetConsoleBufferWidth(HANDLE hOut)
+{
+	CONSOLE_SCREEN_BUFFER_INFO bi{};
+	return GetConsoleScreenBufferInfo(hOut, &bi) ?
+		bi.dwSize.X : 0;
+}
+
+void Print()
+{
+	drawChart = false;
+
+	HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	if (!hOut)
+		return;
+
+	double bufferWidth = GetConsoleBufferWidth(hOut);
+	if (!bufferWidth)
+		return;
+
+	double max = bufferWidth / (maxVal + 64.0);
+
+	cout << endl;
+	for (int i = 0; i < bufferWidth / 2 - 16; i++)
+		cout << " ";
+	cout << "Packets ";
+	cout << messagesCount - medianeInterval;
+	cout << " - ";
+	cout << messagesCount;
+	cout << "\n\n";
+
+	for (const auto& item : dt)
+	{
+		cout << item.first;
+		for (int i = 0; i < 8 - to_string(item.first).length(); i++)
+			cout << " ";
+		
+		SetConsoleTextAttribute(hOut, (WORD)((8 << 4) | 7));
+		for (double i = 0; i < item.second * max; i++)
+			cout << " ";
+		SetConsoleTextAttribute(hOut, (WORD)((0 << 4) | 7));
+		cout << " ";
+		cout << item.second;
+		cout << endl;
+	}
+
+	cout << endl;
+	for (int i = 0; i < 60; i++)
+		cout << '*';
+}
+
+#endif
 
 void Output()
 {
@@ -71,6 +128,10 @@ void Output()
 			for (int i = 0; i < 60; i++)
 				cout << '*';
 		}
+#if defined WIN32
+		else if (c == 'p')
+			drawChart = true;
+#endif
 	}
 }
 

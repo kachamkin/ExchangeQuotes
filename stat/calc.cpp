@@ -19,6 +19,11 @@ int64_t sum = 0;
 int64_t initMessageNumber = -1;
 map<int64_t, int64_t> dt;
 
+#if defined WIN32
+extern bool drawChart;
+void Print();
+#endif
+
 void GetMedMax()
 {
 	bool found = false;
@@ -81,12 +86,10 @@ void UpdateTable(int64_t value)
         dt.insert({ value, 1 });
 }
 
-void UpdateData(boost::array<char, BUFFER_LENGTH>* data)
+void UpdateData(char* pData)
 {
 	messagesCount++;
 
-    char* pData = data->data();
-	
     int64_t num;
     memcpy(&num, pData, 8);
     if (initMessageNumber == -1)
@@ -111,6 +114,10 @@ void UpdateData(boost::array<char, BUFFER_LENGTH>* data)
         int64_t diff = messagesCount - medianeInterval;
         mediane = (diff * mediane + medianeInterval * GetMediane()) / messagesCount;
         mode = (diff * mode + medianeInterval * GetMode()) / messagesCount;
+#if defined WIN32
+        if (drawChart)
+            Print();
+#endif
         dt.clear();
     }
 }
