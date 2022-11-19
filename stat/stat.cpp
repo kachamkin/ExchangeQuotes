@@ -19,6 +19,8 @@ extern int64_t maxVal;
 void Listen();
 #endif
 
+boost::signals2::signal<void(char*)> dataReceived;
+
 bool ReadXML(string path)
 {
 	boost::property_tree::ptree propertyTree;
@@ -72,7 +74,7 @@ void Print()
 	if (!bufferWidth)
 		return;
 
-	double max = bufferWidth / (maxVal + 64.0);
+	double max = bufferWidth / (maxVal + 160.0);
 
 	cout << endl;
 	for (int i = 0; i < bufferWidth / 2 - 16; i++)
@@ -89,10 +91,10 @@ void Print()
 		for (int i = 0; i < 8 - to_string(item.first).length(); i++)
 			cout << " ";
 		
-		SetConsoleTextAttribute(hOut, (WORD)((8 << 4) | 7));
+		SetConsoleTextAttribute(hOut, DARK_GREY_BACKGROUND);
 		for (double i = 0; i < item.second * max; i++)
 			cout << " ";
-		SetConsoleTextAttribute(hOut, (WORD)((0 << 4) | 7));
+		SetConsoleTextAttribute(hOut, BLACK_BACKGROUND);
 		cout << " ";
 		cout << item.second;
 		cout << endl;
@@ -141,7 +143,10 @@ int main(int argc, char* argv[])
 	if (!ReadXML(filesystem::path(argv[0]).parent_path().string()))
 		cout << "Failed to read settings!\n";
 
+	
+	dataReceived.connect(UpdateData);
 	thread(Output).detach();
+	
 #if defined WIN32
 	Listen();
 #else

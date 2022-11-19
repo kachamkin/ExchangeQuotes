@@ -5,7 +5,7 @@ extern string groupAddress;
 extern int medianeInterval;
 extern int modeStep;
 
-void UpdateData(char* pData);
+extern boost::signals2::signal<void(char*)> dataReceived;
 
 #ifndef WIN32
 
@@ -31,7 +31,7 @@ void udp_server::handle_receive(const boost::system::error_code& error,
 {
 	if (!error || error == boost::asio::error::message_size)
 	{
-		UpdateData(&recv_buffer_.data());
+		dataReceived(recv_buffer_.data());
 		start_receive();
 	}
 }
@@ -90,7 +90,7 @@ void Listen()
 	{
 		bytesRead = recvfrom(listen_socket, buff, BUFFER_LENGTH, 0, (struct sockaddr*)&addr, &addrlen);
 		if (bytesRead > 0)
-			UpdateData(buff);
+			dataReceived(buff);
 	};
 }
 

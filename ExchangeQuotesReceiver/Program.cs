@@ -30,12 +30,14 @@ catch
 
 Console.WriteLine("\nPlease use \"Q\" to exit, correctly free network resources and avoid side effects\n");
 Task.Run(() => Output());
+OnDataReceived += UpdateData;
 
 while (true)
 {
     try
     {
-        await Task.Run(async () => UpdateData((await udpClient.ReceiveAsync()).Buffer)); 
+        UdpReceiveResult res = await udpClient.ReceiveAsync();
+        OnDataReceived?.Invoke(res.Buffer);
     }
     catch { };
 }
@@ -66,6 +68,9 @@ partial class Program
     private static bool drawChart = false;
 
     private static readonly byte[] halfMessage = new byte[halfBufferLength]; 
+
+    private delegate void DataReceived(byte[] data);
+    private static event DataReceived? OnDataReceived;
 
     private static void Output()
     {

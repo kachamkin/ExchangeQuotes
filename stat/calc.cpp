@@ -24,6 +24,8 @@ extern bool drawChart;
 void Print();
 #endif
 
+extern boost::signals2::signal<void(char*)> dataReceived;
+
 void GetMedMax()
 {
 	bool found = false;
