@@ -3,11 +3,14 @@
 #include <iostream>
 #include <fstream> 
 #include <map>
+#include <thread>
+#include <cmath>
 #include <boost/property_tree/xml_parser.hpp>
 #include <filesystem>
 #include <boost/signals2.hpp>
-#include <WinSock2.h>
-#include <ws2tcpip.h>
+
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #define BUFFER_LENGTH 16
 #define SOCKET_BUFFER_SIZE 10485760

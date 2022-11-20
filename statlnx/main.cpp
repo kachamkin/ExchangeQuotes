@@ -13,6 +13,7 @@ double mediane = 0;
 double mode = 0;
 
 bool drawChart = false;
+bool exitApp = false;
 extern map<int64_t, int64_t> dt;
 extern int64_t maxVal;
 
@@ -50,24 +51,11 @@ bool ReadXML(string path)
 	}
 }
 
-int GetConsoleBufferWidth(HANDLE hOut)
-{
-	CONSOLE_SCREEN_BUFFER_INFO bi{};
-	return GetConsoleScreenBufferInfo(hOut, &bi) ?
-		bi.dwSize.X : 0;
-}
-
 void Print()
 {
 	drawChart = false;
 
-	HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-	if (!hOut)
-		return;
-
-	double bufferWidth = GetConsoleBufferWidth(hOut);
-	if (!bufferWidth)
-		return;
+	const double bufferWidth = 120;
 	double max = bufferWidth / (maxVal + 168.0);
 
 	cout << endl;
@@ -84,11 +72,8 @@ void Print()
 		cout << item.first;
 		for (int i = 0; i < 8 - to_string(item.first).length(); i++)
 			cout << " ";
-
-		SetConsoleTextAttribute(hOut, DARK_GREY_BACKGROUND);
 		for (double i = 0; i < item.second * max; i++)
-			cout << " ";
-		SetConsoleTextAttribute(hOut, BLACK_BACKGROUND);
+			cout << "*";
 		cout << " ";
 		cout << item.second;
 		cout << endl;
@@ -125,7 +110,10 @@ void Output()
 			cout << endl;
 		}
 		else if (c == 'q')
+		{
+			exitApp = true;
 			exit(0);
+		}			
 		else if (c == 'p')
 			drawChart = true;
 	}
@@ -145,6 +133,6 @@ int main(int argc, char* argv[])
 
 	dataReceived.connect(UpdateData);
 	thread(Output).detach();
-	
+
 	Listen();
 }

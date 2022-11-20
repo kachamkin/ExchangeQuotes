@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <settings>
-	<GroupAddress>224.116.88.9</GroupAddress>
+	<GroupAddress>224.0.0.201</GroupAddress>
 	<Port>5055</Port>
 	<MedianeInterval>10000</MedianeInterval>
 	<ModeStep>20</ModeStep>
