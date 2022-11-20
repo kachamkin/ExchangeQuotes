@@ -21,7 +21,6 @@ map<int64_t, int64_t> dt;
 
 #if defined WIN32
 extern bool drawChart;
-void Print();
 #endif
 
 extern boost::signals2::signal<void(char*)> dataReceived;

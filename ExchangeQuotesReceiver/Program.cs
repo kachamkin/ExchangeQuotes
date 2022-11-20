@@ -36,8 +36,7 @@ while (true)
 {
     try
     {
-        UdpReceiveResult res = await udpClient.ReceiveAsync();
-        OnDataReceived?.Invoke(res.Buffer);
+        OnDataReceived?.Invoke((await udpClient.ReceiveAsync()).Buffer);
     }
     catch { };
 }

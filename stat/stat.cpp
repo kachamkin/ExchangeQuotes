@@ -13,10 +13,11 @@ double mediane = 0;
 double mode = 0;
 
 #if defined WIN32
+
 bool drawChart = false;
 extern map<int64_t, int64_t> dt;
 extern int64_t maxVal;
-void Listen();
+
 #endif
 
 boost::signals2::signal<void(char*)> dataReceived;

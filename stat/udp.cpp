@@ -2,8 +2,6 @@
 
 extern int port;
 extern string groupAddress;
-extern int medianeInterval;
-extern int modeStep;
 
 extern boost::signals2::signal<void(char*)> dataReceived;
 
@@ -22,18 +20,14 @@ void udp_server::start_receive()
 	socket_.async_receive_from(
 		boost::asio::buffer(recv_buffer_), remote_endpoint_,
 		boost::bind(&udp_server::handle_receive, this,
-			placeholders::error,
-			placeholders::bytes_transferred));
+			placeholders::error));
 }
 
-void udp_server::handle_receive(const boost::system::error_code& error,
-	std::size_t cbBytes)
+void udp_server::handle_receive(const boost::system::error_code& error)
 {
 	if (!error || error == boost::asio::error::message_size)
-	{
 		dataReceived(recv_buffer_.data());
-		start_receive();
-	}
+	start_receive();
 }
 
 #else
@@ -82,14 +76,12 @@ void Listen()
 		return;
 	}
 
-	int bytesRead = 0;
 	char buff[BUFFER_LENGTH]{};
-
 	int addrlen = sizeof(addr);
+
 	while (true)
 	{
-		bytesRead = recvfrom(listen_socket, buff, BUFFER_LENGTH, 0, (struct sockaddr*)&addr, &addrlen);
-		if (bytesRead > 0)
+		if (recvfrom(listen_socket, buff, BUFFER_LENGTH, 0, (struct sockaddr*)&addr, &addrlen) > 0)
 			dataReceived(buff);
 	};
 }
