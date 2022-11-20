@@ -63,9 +63,13 @@ int GetConsoleBufferWidth(HANDLE hOut)
 		bi.dwSize.X : 0;
 }
 
+#endif
+
 void Print()
 {
 	drawChart = false;
+
+#if defined WIN32
 
 	HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 	if (!hOut)
@@ -74,8 +78,11 @@ void Print()
 	double bufferWidth = GetConsoleBufferWidth(hOut);
 	if (!bufferWidth)
 		return;
+#else
+	double bufferWidth = 120;
+#endif
 
-	double max = bufferWidth / (maxVal + 160.0);
+	double max = bufferWidth / (maxVal + 168.0);
 
 	cout << endl;
 	for (int i = 0; i < bufferWidth / 2 - 16; i++)
@@ -92,10 +99,16 @@ void Print()
 		for (int i = 0; i < 8 - to_string(item.first).length(); i++)
 			cout << " ";
 		
+#if defined WIN32
 		SetConsoleTextAttribute(hOut, DARK_GREY_BACKGROUND);
 		for (double i = 0; i < item.second * max; i++)
 			cout << " ";
 		SetConsoleTextAttribute(hOut, BLACK_BACKGROUND);
+#else
+		for (double i = 0; i < item.second * max; i++)
+			cout << "*";
+#endif
+
 		cout << " ";
 		cout << item.second;
 		cout << endl;
@@ -104,9 +117,8 @@ void Print()
 	cout << endl;
 	for (int i = 0; i < 60; i++)
 		cout << '*';
+	cout << endl;
 }
-
-#endif
 
 void Output()
 {
@@ -130,11 +142,12 @@ void Output()
 			cout << endl;
 			for (int i = 0; i < 60; i++)
 				cout << '*';
+			cout << endl;
 		}
-#if defined WIN32
+		else if (c == 'q')
+			exit(0);
 		else if (c == 'p')
 			drawChart = true;
-#endif
 	}
 }
 
@@ -144,7 +157,12 @@ int main(int argc, char* argv[])
 	if (!ReadXML(filesystem::path(argv[0]).parent_path().string()))
 		cout << "Failed to read settings!\n";
 
-	
+	cout << "\n================== Stat params calculation ==================\n\n";
+	cout << "Please press:" << endl;
+	cout << "	- \"Enter\" for text data output" << endl;
+	cout << "	- \"P + Enter\" for chart output" << endl;
+	cout << "	- \"Q + Enter\" for quit" << endl;
+
 	dataReceived.connect(UpdateData);
 	thread(Output).detach();
 	

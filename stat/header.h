@@ -29,6 +29,7 @@ using namespace std;
 using namespace boost::placeholders;
 
 void UpdateData(char* pData);
+void Print();
 
 #ifndef WIN32
 
@@ -47,8 +48,5 @@ private:
 };
 
 #else
-
 void Listen();
-void Print();
-
 #endif

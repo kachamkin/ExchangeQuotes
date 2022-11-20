@@ -18,10 +18,7 @@ double stdDev = 0;
 int64_t sum = 0;
 int64_t initMessageNumber = -1;
 map<int64_t, int64_t> dt;
-
-#if defined WIN32
 extern bool drawChart;
-#endif
 
 extern boost::signals2::signal<void(char*)> dataReceived;
 
@@ -115,10 +112,8 @@ void UpdateData(char* pData)
         int64_t diff = messagesCount - medianeInterval;
         mediane = (diff * mediane + medianeInterval * GetMediane()) / messagesCount;
         mode = (diff * mode + medianeInterval * GetMode()) / messagesCount;
-#if defined WIN32
         if (drawChart)
             Print();
-#endif
         dt.clear();
     }
 }
