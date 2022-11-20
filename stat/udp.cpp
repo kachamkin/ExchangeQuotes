@@ -2,6 +2,7 @@
 
 extern int port;
 extern string groupAddress;
+extern bool exitApp;
 
 extern boost::signals2::signal<void(char*)> dataReceived;
 
@@ -62,6 +63,12 @@ void Listen()
 
 	while (true)
 	{
+		if (exitApp)
+		{
+			closesocket(listen_socket);
+			WSACleanup();
+			break;
+		}
 		if (recvfrom(listen_socket, buff, BUFFER_LENGTH, 0, (struct sockaddr*)&addr, &addrlen) > 0)
 			dataReceived(buff);
 	};

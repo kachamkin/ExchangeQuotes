@@ -13,6 +13,7 @@ double mediane = 0;
 double mode = 0;
 
 bool drawChart = false;
+bool exitApp = false;
 extern map<int64_t, int64_t> dt;
 extern int64_t maxVal;
 
@@ -125,7 +126,11 @@ void Output()
 			cout << endl;
 		}
 		else if (c == 'q')
+		{
+			exitApp = true;
+			this_thread::sleep_for(chrono::milliseconds(1));
 			exit(0);
+		}
 		else if (c == 'p')
 			drawChart = true;
 	}

@@ -112,6 +112,7 @@ void Output()
 		else if (c == 'q')
 		{
 			exitApp = true;
+			this_thread::sleep_for(chrono::milliseconds(1));
 			exit(0);
 		}			
 		else if (c == 'p')
