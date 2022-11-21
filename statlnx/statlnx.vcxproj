@@ -99,7 +99,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>/home/ubuntu/boost_1_80_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <CppLanguageStandard>c++20</CppLanguageStandard>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
       <Optimization>Full</Optimization>
       <RelaxIEEE>true</RelaxIEEE>
       <DebugInformationFormat>None</DebugInformationFormat>

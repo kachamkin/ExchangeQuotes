@@ -78,7 +78,7 @@ double GetMediane()
 
 void UpdateTable(int64_t value)
 {
-    if (dt.contains(value))
+    if (dt.find(value) != dt.end())
         dt[value]++;
     else
         dt.insert({ value, 1 });
